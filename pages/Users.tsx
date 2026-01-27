@@ -60,8 +60,8 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">المستخدمين</h1>
-          <p className="text-gray-500">إدارة صلاحيات الموظفين ومدراء الفروع</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">المستخدمين</h1>
+          <p className="text-gray-500 dark:text-gray-400">إدارة صلاحيات الموظفين ومدراء الفروع</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
@@ -72,11 +72,11 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors">
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs font-bold uppercase border-b border-gray-100">
+              <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs font-bold uppercase border-b border-gray-100 dark:border-gray-700">
                 <th className="px-6 py-4">الاسم</th>
                 <th className="px-6 py-4">اسم المستخدم</th>
                 <th className="px-6 py-4">الدور</th>
@@ -84,23 +84,23 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
                 <th className="px-6 py-4 text-center">الإجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {store.users.map(u => (
-                <tr key={u.id} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 font-bold">{u.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{u.username}</td>
+                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                  <td className="px-6 py-4 font-bold dark:text-gray-200">{u.name}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{u.username}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                      u.role === Role.ADMIN ? 'bg-purple-100 text-purple-700' :
-                      u.role === Role.MANAGER ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                      u.role === Role.ADMIN ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                      u.role === Role.MANAGER ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                     }`}>
                       {u.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{store.branches.find(b => b.id === u.branchId)?.name || u.branchId}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{store.branches.find(b => b.id === u.branchId)?.name || u.branchId}</td>
                   <td className="px-6 py-4 flex justify-center gap-2">
-                    <button onClick={() => handleOpenModal(u.id)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"><Edit3 size={16} /></button>
-                    <button onClick={() => openDeleteConfirm(u.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"><Trash2 size={16} /></button>
+                    <button onClick={() => handleOpenModal(u.id)} className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition"><Edit3 size={16} /></button>
+                    <button onClick={() => openDeleteConfirm(u.id)} className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition"><Trash2 size={16} /></button>
                   </td>
                 </tr>
               ))}
@@ -111,37 +111,55 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-200 transition-colors">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800">{editId ? 'تعديل' : 'إضافة'} مستخدم</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition p-1 rounded-full hover:bg-gray-100"><X size={20} /></button>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white">{editId ? 'تعديل' : 'إضافة'} مستخدم</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">الاسم الكامل</label>
-                <input type="text" className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">الاسم الكامل</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" 
+                  value={formData.name} 
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">اسم المستخدم</label>
-                <input type="text" className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">اسم المستخدم</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" 
+                  value={formData.username} 
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })} 
+                />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">الدور</label>
-                <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white outline-none" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">الدور</label>
+                <select 
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white outline-none" 
+                  value={formData.role} 
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
+                >
                   <option value={Role.ADMIN}>{Role.ADMIN}</option>
                   <option value={Role.MANAGER}>{Role.MANAGER}</option>
                   <option value={Role.STAFF}>{Role.STAFF}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">الفرع</label>
-                <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white outline-none" value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">الفرع</label>
+                <select 
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+                  value={formData.branchId} 
+                  onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                >
                   {store.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex gap-3 mt-8">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl font-bold hover:bg-gray-50 transition">إلغاء</button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition">إلغاء</button>
               <button onClick={handleSave} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition">حفظ</button>
             </div>
           </div>

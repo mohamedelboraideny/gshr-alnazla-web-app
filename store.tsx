@@ -109,12 +109,14 @@ interface StoreContextType {
   beneficiaries: Beneficiary[];
   families: Family[];
   logs: AuditLog[];
+  isDarkMode: boolean;
   setBranches: (data: Branch[]) => void;
   setRegions: (data: Region[]) => void;
   saveUsers: (data: User[]) => void;
   setBeneficiaries: (data: Beneficiary[]) => void;
   setFamilies: (data: Family[]) => void;
   addLog: (user: User, action: string, entityType: string, entityId: string) => void;
+  toggleDarkMode: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -143,6 +145,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [logs, setLogsState] = useState<AuditLog[]>(() => {
     const item = localStorage.getItem('audit_logs');
     return item ? JSON.parse(item) : [];
+  });
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem('theme') === 'dark';
   });
 
   const setBranches = (data: Branch[]) => {
@@ -187,10 +192,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const newVal = !prev;
+      localStorage.setItem('theme', newVal ? 'dark' : 'light');
+      return newVal;
+    });
+  };
+
   return (
     <StoreContext.Provider value={{
-      branches, regions, users, beneficiaries, families, logs,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setFamilies, addLog
+      branches, regions, users, beneficiaries, families, logs, isDarkMode,
+      setBranches, setRegions, saveUsers, setBeneficiaries, setFamilies, addLog, toggleDarkMode
     }}>
       {children}
     </StoreContext.Provider>
