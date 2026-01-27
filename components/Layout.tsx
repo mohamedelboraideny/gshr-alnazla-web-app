@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Building2, UserPlus, History, LogOut, Map, BarChart3, Sun, Moon, Tag, RotateCcw, Menu, X
 } from 'lucide-react';
-import { User, Role, useStore } from '../store.tsx';
+import { User, Role, useStore } from '../CharityStore';
 
 interface LayoutProps {
   children: React.ReactNode;

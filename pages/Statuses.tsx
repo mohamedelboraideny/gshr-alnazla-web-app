@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStore, User, Role, BeneficiaryCategory } from '../store.tsx';
+import { useStore, User, Role, BeneficiaryCategory } from '../CharityStore';
 import { Plus, Edit3, Trash2, X, Tag } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 

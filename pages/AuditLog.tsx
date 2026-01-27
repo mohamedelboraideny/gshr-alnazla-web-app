@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStore, Role, User } from '../store.tsx';
+import { useStore, Role, User } from '../CharityStore';
 import { History, ShieldAlert } from 'lucide-react';
 
 const AuditLog: React.FC<{ user: User }> = ({ user }) => {

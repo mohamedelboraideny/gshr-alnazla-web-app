@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStore, User, Branch } from '../store.tsx';
+import { useStore, User, Branch } from '../CharityStore';
 import { Plus, Edit3, Trash2, MapPin, X, ChevronLeft } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 

@@ -1,6 +1,5 @@
-
 import React, { useState, useMemo } from 'react';
-import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role } from '../store.tsx';
+import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role } from '../CharityStore';
 import { 
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 

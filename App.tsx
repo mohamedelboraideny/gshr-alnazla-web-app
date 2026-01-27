@@ -11,7 +11,7 @@ import AuditLog from './pages/AuditLog';
 import Regions from './pages/Regions';
 import Reports from './pages/Reports';
 import Statuses from './pages/Statuses';
-import { User, StoreProvider } from './store.tsx';
+import { User, StoreProvider } from './CharityStore';
 
 const AuthGate: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);

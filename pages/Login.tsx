@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStore, User } from '../store.tsx';
+import { useStore, User } from '../CharityStore';
 import { LogIn, Lock, User as UserIcon, AlertCircle, KeyRound, ShieldCheck } from 'lucide-react';
 
 interface LoginProps {

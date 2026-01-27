@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStore, User, Role } from '../store.tsx';
+import { useStore, User, Role } from '../CharityStore';
 import { UserPlus, Edit3, Trash2, X, RotateCcw, ShieldCheck, KeyRound } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 

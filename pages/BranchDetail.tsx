@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useStore, Role, User } from '../store.tsx';
+import { useStore, Role, User } from '../CharityStore';
 import { ArrowRight, Building2, Users, UserCircle, MapPin, Calendar } from 'lucide-react';
 
 const BranchDetail: React.FC<{ user: User }> = ({ user: currentUser }) => {

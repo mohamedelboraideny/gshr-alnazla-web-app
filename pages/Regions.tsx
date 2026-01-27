@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, Region, Role, User } from '../store.tsx';
+import { useStore, Region, Role, User } from '../CharityStore';
 import { Plus, Edit3, Trash2, Map, X, Search, Building2 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
