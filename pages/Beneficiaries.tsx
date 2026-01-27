@@ -4,8 +4,8 @@ import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role }
 import { 
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
-  LayoutList, Network, MapPin, Check,
-  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft
+  LayoutList, Network, MapPin, Check, Phone,
+  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Activity
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -15,6 +15,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const [filterRegion, setFilterRegion] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
+  const [filterStatus, setFilterStatus] = useState(''); // New Status Filter
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<BeneficiaryType>(BeneficiaryType.INDIVIDUAL);
   const [editId, setEditId] = useState<string | null>(null);
@@ -31,7 +33,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     address: '',
     birthDate: '',
     regionId: '',
-    categoryId: '',
+    categoryIds: [] as string[], // Changed to array
     familyId: '',
     status: BeneficiaryStatus.ACTIVE
   };
@@ -58,12 +60,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         (b.phone && b.phone.includes(searchTerm));
       
       const matchesRegion = filterRegion ? b.regionId === filterRegion : true;
-      const matchesCategory = filterCategory ? b.categoryId === filterCategory : true;
+      // Update filter category logic for array
+      const matchesCategory = filterCategory ? b.categoryIds.includes(filterCategory) : true;
       const matchesBranch = filterBranch ? b.branchId === filterBranch : true;
+      const matchesStatus = filterStatus ? b.status === filterStatus : true;
 
-      return matchesSearch && matchesRegion && matchesCategory && matchesBranch;
+      return matchesSearch && matchesRegion && matchesCategory && matchesBranch && matchesStatus;
     });
-  }, [beneficiaries, searchTerm, filterRegion, filterCategory, filterBranch, user.branchId, isAdmin]);
+  }, [beneficiaries, searchTerm, filterRegion, filterCategory, filterBranch, filterStatus, user.branchId, isAdmin]);
 
   // 2. Tree Data Construction
   const treeData = useMemo(() => {
@@ -73,10 +77,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     const heads = filteredBeneficiaries.filter(b => b.type === BeneficiaryType.FAMILY_HEAD);
     // Get Independent Individuals
     const individuals = filteredBeneficiaries.filter(b => b.type === BeneficiaryType.INDIVIDUAL);
-    // Get Members (to be nested) - Note: Members might be filtered out if search doesn't match them, 
-    // but typically we want to see members if the HEAD is matched. 
-    // For simplicity here, we only show members that ALSO match filters or if we want to show all children of a matched head.
-    // Let's stick to: Show children only if they are in 'beneficiaries' (global) but belong to a visible head.
     
     const allMembers = beneficiaries.filter(b => b.type === BeneficiaryType.FAMILY_MEMBER);
 
@@ -107,7 +107,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       if (b) {
         setFormData({ 
           name: b.name, nationalId: b.nationalId, phone: b.phone || '', address: b.address,
-          birthDate: b.birthDate || '', regionId: b.regionId || '', categoryId: b.categoryId || '',
+          birthDate: b.birthDate || '', regionId: b.regionId || '', 
+          categoryIds: b.categoryIds || [], // Handle potential legacy string (though store fixed)
           familyId: b.familyId || '', status: b.status
         });
         setEditId(id);
@@ -117,6 +118,17 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       setEditId(null);
     }
     setIsModalOpen(true);
+  };
+
+  const toggleCategorySelection = (catId: string) => {
+    setFormData(prev => {
+      const current = prev.categoryIds;
+      if (current.includes(catId)) {
+        return { ...prev, categoryIds: current.filter(id => id !== catId) };
+      } else {
+        return { ...prev, categoryIds: [...current, catId] };
+      }
+    });
   };
 
   const handleSave = () => {
@@ -221,6 +233,19 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
               {branchRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
            </select>
         </div>
+
+        {/* New Status Filter */}
+        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
+           <Activity size={16} className="text-gray-400" />
+           <select 
+             className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0 w-24"
+             value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+           >
+              <option value="">كل الحالات</option>
+              <option value={BeneficiaryStatus.ACTIVE}>{BeneficiaryStatus.ACTIVE}</option>
+              <option value={BeneficiaryStatus.SUSPENDED}>{BeneficiaryStatus.SUSPENDED}</option>
+           </select>
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -229,14 +254,15 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           <table className="w-full text-right border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
               <tr>
-                <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest w-[40%]">الاسم / الهوية</th>
+                <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest w-[35%]">الاسم / الهوية</th>
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">التصنيفات</th>
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">رقم الهاتف</th>
                 {!isTreeView && (
                   <>
-                  <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">التصنيف</th>
                   <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">المنطقة</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">العمر</th>
                   </>
                 )}
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">الحالة</th>
                 <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-center">التحكم</th>
               </tr>
             </thead>
@@ -267,12 +293,35 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                             <div className="flex gap-3 mt-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                               <span>{item.nationalId}</span>
                               <span className="w-1 h-1 rounded-full bg-gray-300 mt-1.5"></span>
-                              <span className="text-emerald-600">{categories.find(c => c.id === item.categoryId)?.name}</span>
-                              <span className="w-1 h-1 rounded-full bg-gray-300 mt-1.5"></span>
                               <span>{regions.find(r => r.id === item.regionId)?.name}</span>
                             </div>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-wrap gap-1">
+                          {item.categoryIds && item.categoryIds.length > 0 ? (
+                            item.categoryIds.map(catId => (
+                              <span key={catId} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                                {categories.find(c => c.id === catId)?.name || 'غير معروف'}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-gray-400">لا يوجد تصنيف</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-xs font-bold font-mono text-gray-600 dark:text-gray-300">
+                        {item.phone || '-'}
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          item.status === BeneficiaryStatus.ACTIVE 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {item.status}
+                        </span>
                       </td>
                       <td className="px-6 py-5 flex justify-center gap-2">
                          <button onClick={() => handleOpenModal(item.type, item.id)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"><Edit3 size={18} /></button>
@@ -307,6 +356,21 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                               </div>
                             </div>
                           </td>
+                          <td className="px-6 py-3">
+                             <div className="flex flex-wrap gap-1 opacity-50">
+                               {child.categoryIds?.map(catId => (
+                                 <span key={catId} className="text-[9px] text-gray-500 border border-gray-200 rounded px-1">
+                                   {categories.find(c => c.id === catId)?.name}
+                                 </span>
+                               ))}
+                             </div>
+                          </td>
+                          <td className="px-6 py-3 text-[10px] text-gray-400">-</td>
+                          <td className="px-6 py-3">
+                            <span className={`text-[10px] font-bold opacity-60 ${child.status === BeneficiaryStatus.ACTIVE ? 'text-green-600' : 'text-red-600'}`}>
+                              {child.status}
+                            </span>
+                          </td>
                           <td className="px-6 py-3 flex justify-center gap-2">
                              <button onClick={() => handleOpenModal(child.type, child.id)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg transition"><Edit3 size={14} /></button>
                              <button onClick={() => setConfirmModal({ isOpen: true, mode: 'single', id: child.id })} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition"><Trash2 size={14} /></button>
@@ -332,15 +396,32 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
-                         {categories.find(c => c.id === b.categoryId)?.name || 'غير مصنف'}
-                       </span>
+                       <div className="flex flex-wrap gap-1 max-w-[200px]">
+                         {b.categoryIds && b.categoryIds.length > 0 ? (
+                           b.categoryIds.map(catId => (
+                             <span key={catId} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                               {categories.find(c => c.id === catId)?.name || 'غير مصنف'}
+                             </span>
+                           ))
+                         ) : (
+                           <span className="text-[10px] text-gray-400">-</span>
+                         )}
+                       </div>
+                    </td>
+                    <td className="px-6 py-5 text-xs font-bold font-mono text-gray-600 dark:text-gray-300">
+                       {b.phone || '-'}
                     </td>
                     <td className="px-6 py-5 text-xs font-bold text-gray-500 dark:text-gray-400">
                        {regions.find(r => r.id === b.regionId)?.name || '-'}
                     </td>
-                    <td className="px-6 py-5 text-xs font-bold text-gray-500 dark:text-gray-400">
-                       {calculateAge(b.birthDate)}
+                    <td className="px-6 py-5">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        b.status === BeneficiaryStatus.ACTIVE 
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {b.status}
+                      </span>
                     </td>
                     <td className="px-6 py-5 flex justify-center gap-2">
                       <button onClick={() => handleOpenModal(b.type, b.id)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"><Edit3 size={18} /></button>
@@ -363,7 +444,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
       </div>
 
-      {/* Modal & Confirm Dialogs remain similar but cleaner */}
+      {/* Modal & Confirm Dialogs */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800">
@@ -395,6 +476,15 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                  </div>
 
                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-2">رقم الهاتف</label>
+                    <input 
+                      type="text" maxLength={11} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-gray-800 dark:text-white font-mono"
+                      value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })} 
+                      placeholder="01xxxxxxxxx"
+                    />
+                 </div>
+
+                 <div>
                     <label className="block text-xs font-bold text-gray-500 mb-2">تاريخ الميلاد</label>
                     <input 
                       type="date" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-gray-800 dark:text-white"
@@ -414,14 +504,37 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                  </div>
 
                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-2">تصنيف الحالة</label>
+                    <label className="block text-xs font-bold text-gray-500 mb-2">حالة المستفيد</label>
                     <select 
                       className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-gray-800 dark:text-white"
-                      value={formData.categoryId} onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                      value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as BeneficiaryStatus })}
                     >
-                      <option value="">اختر التصنيف...</option>
-                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      <option value={BeneficiaryStatus.ACTIVE}>{BeneficiaryStatus.ACTIVE}</option>
+                      <option value={BeneficiaryStatus.SUSPENDED}>{BeneficiaryStatus.SUSPENDED}</option>
                     </select>
+                 </div>
+
+                 <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 mb-3">تصنيفات الحالة (يمكن اختيار أكثر من واحدة)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {categories.map(c => {
+                        const isSelected = formData.categoryIds.includes(c.id);
+                        return (
+                          <div 
+                            key={c.id} 
+                            onClick={() => toggleCategorySelection(c.id)}
+                            className={`cursor-pointer px-4 py-3 rounded-xl border text-xs font-bold transition-all duration-200 flex items-center justify-between ${
+                              isSelected 
+                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-500/50 dark:text-emerald-400' 
+                                : 'bg-gray-50 border-transparent text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <span>{c.name}</span>
+                            {isSelected && <Check size={14} className="text-emerald-600" />}
+                          </div>
+                        )
+                      })}
+                    </div>
                  </div>
               </div>
             </div>

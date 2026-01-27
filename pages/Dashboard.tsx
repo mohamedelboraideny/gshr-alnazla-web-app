@@ -135,7 +135,8 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
           <h3 className="font-bold text-xl text-gray-800 dark:text-white mb-8 border-b border-gray-50 dark:border-gray-700 pb-4">تصنيفات الحالات</h3>
           <div className="space-y-6 flex-1 overflow-y-auto custom-scrollbar pr-2">
              {categories.map(cat => {
-               const count = visibleBeneficiaries.filter(b => b.categoryId === cat.id).length;
+               // Update counting logic for array of categoryIds
+               const count = visibleBeneficiaries.filter(b => b.categoryIds?.includes(cat.id)).length;
                const percentage = visibleBeneficiaries.length > 0 ? (count / visibleBeneficiaries.length) * 100 : 0;
                return (
                  <div key={cat.id} className="group">

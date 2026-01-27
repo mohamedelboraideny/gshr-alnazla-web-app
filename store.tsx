@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // --- Types & Enums ---
@@ -57,7 +58,7 @@ export interface Beneficiary {
   branchId: string;
   status: BeneficiaryStatus;
   type: BeneficiaryType;
-  categoryId?: string;
+  categoryIds: string[]; // Changed from categoryId string to array
   familyId?: string;
   createdAt: string;
 }
@@ -79,6 +80,7 @@ const INITIAL_CATEGORIES: BeneficiaryCategory[] = [
   { id: 'cat3', name: 'أرملة' },
   { id: 'cat4', name: 'ذوي احتياجات خاصة' },
   { id: 'cat5', name: 'غارمين' },
+  { id: 'cat6', name: 'مطلقة' },
 ];
 
 const INITIAL_BRANCHES: Branch[] = [
@@ -108,74 +110,105 @@ const INITIAL_USERS: User[] = [
 
 const generateMockBeneficiaries = (): Beneficiary[] => {
   const data: Beneficiary[] = [];
-  const names = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'ليلى', 'فاطمة', 'زينب', 'هدى', 'عبير', 'خالد', 'عمر', 'سعيد', 'كريم', 'نورهان', 'منى', 'يوسف', 'عبد الله'];
-  const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي'];
+  const firstNames = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'يوسف', 'عبد الله', 'خالد', 'عمر', 'سعيد', 'كريم', 'حسن', 'حسين'];
+  const femaleNames = ['فاطمة', 'زينب', 'مريم', 'عائشة', 'نور', 'سلمى', 'هبة', 'منى', 'سارة', 'هدى'];
+  const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي', 'سالم', 'صلاح'];
+
+  // Helper to get random item
+  const rnd = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
   
-  // 1. Create 20 Family Heads (distributed across 5 branches)
-  for (let i = 0; i < 20; i++) {
+  // 1. Create 25 Family Heads (distributed across branches)
+  for (let i = 0; i < 25; i++) {
     const headId = `head_${i+1}`;
-    const branch = INITIAL_BRANCHES[i % 5];
+    const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
-    const categoryId = INITIAL_CATEGORIES[i % 5].id;
-    const address = `شارع ${i * 2 + 1}، بلوك ${i + 1}`;
-    const createdAt = new Date(Date.now() - (i * 86400000)).toISOString();
+    
+    // Assign 1 or 2 categories
+    const cat1 = INITIAL_CATEGORIES[i % INITIAL_CATEGORIES.length].id;
+    const cat2 = INITIAL_CATEGORIES[(i + 2) % INITIAL_CATEGORIES.length].id;
+    const categoryIds = i % 3 === 0 ? [cat1, cat2] : [cat1];
 
-    const headName = `${names[i % names.length]} ${lastNames[i % lastNames.length]} ${lastNames[(i+1) % lastNames.length]}`;
+    const address = `شارع ${rnd(['التحرير', 'النصر', 'الجمهورية', 'الثورة', 'النيل'])}، رقم ${Math.floor(Math.random() * 50) + 1}`;
+    
+    // Construct realistic full name: First + Father + Grandfather + Family
+    const firstName = rnd(firstNames);
+    const fatherName = rnd(firstNames);
+    const grandFatherName = rnd(firstNames);
+    const familyName = rnd(lastNames);
+    const headName = `${firstName} ${fatherName} ${grandFatherName} ${familyName}`;
 
-    const head: Beneficiary = {
+    const createdAt = new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString();
+    const status = Math.random() > 0.1 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
+
+    // Create Head
+    data.push({
       id: headId,
       name: headName,
-      nationalId: `2900101010${1000 + i}`,
-      phone: `010203040${i < 10 ? '0' + i : i}`,
+      nationalId: `2${Math.floor(70 + Math.random() * 20)}0101${10000 + i}`, // Approx age 30-50
+      phone: `010${Math.floor(Math.random() * 100000000)}`,
       address: address,
-      birthDate: '1975-06-12',
+      birthDate: `${1970 + Math.floor(Math.random() * 20)}-05-15`,
       branchId: branch.id,
       regionId: region.id,
-      status: BeneficiaryStatus.ACTIVE,
+      status: status,
       type: BeneficiaryType.FAMILY_HEAD,
-      categoryId: categoryId,
+      categoryIds: categoryIds,
       createdAt: createdAt
-    };
-    data.push(head);
+    });
 
-    // 2. Add 3 Members for each Family (60 members)
-    for (let j = 1; j <= 3; j++) {
+    // 2. Add 2-5 Members for each Family
+    const numMembers = Math.floor(Math.random() * 4) + 2; 
+    for (let j = 1; j <= numMembers; j++) {
+      const isFemale = Math.random() > 0.5;
+      const childFirstName = isFemale ? rnd(femaleNames) : rnd(firstNames);
+      // Child Name: ChildFirst + HeadFirst + HeadFather + HeadFamily
+      const childName = `${childFirstName} ${firstName} ${fatherName} ${familyName}`;
+      
+      const birthYear = 2005 + Math.floor(Math.random() * 15); // Age ~5 to 20
+      
       data.push({
-        id: `member_${i}_${j}`,
-        // Use a different first name + Head's first name as father name
-        name: `${names[(i + j + 5) % names.length]} ${headName.split(' ')[0]}`,
-        nationalId: `3100101010${2000 + (i * 10) + j}`,
-        phone: '',
-        address: address, // Inherit address
-        birthDate: '2010-01-01',
+        id: `mem_${i}_${j}`,
+        name: childName,
+        nationalId: `3${birthYear.toString().substring(2)}0101${20000 + (i*100) + j}`,
+        phone: '', // Children usually don't have registered phone in system
+        address: address,
+        birthDate: `${birthYear}-01-01`,
         branchId: branch.id,
         regionId: region.id,
-        status: BeneficiaryStatus.ACTIVE,
+        status: status, // Inherit status from head
         type: BeneficiaryType.FAMILY_MEMBER,
-        categoryId: categoryId, // Inherit category
+        categoryIds: categoryIds, // Inherit categories
         familyId: headId,
         createdAt: createdAt
       });
     }
   }
 
-  // 3. Add 20 Independent Individuals
-  for (let i = 0; i < 20; i++) {
-    const branch = INITIAL_BRANCHES[i % 5];
+  // 3. Add 15 Independent Individuals
+  for (let i = 0; i < 15; i++) {
+    const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
+    const catId = INITIAL_CATEGORIES[Math.floor(Math.random() * INITIAL_CATEGORIES.length)].id;
+    
+    const firstName = rnd(firstNames);
+    const fatherName = rnd(firstNames);
+    const familyName = rnd(lastNames);
+    const name = `${firstName} ${fatherName} ${familyName}`;
+    const status = Math.random() > 0.2 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
+
     data.push({
       id: `ind_${i+1}`,
-      name: `${names[(i + 10) % names.length]} ${lastNames[(i + 5) % lastNames.length]} (مستقل)`,
-      nationalId: `2850101010${3000 + i}`,
-      phone: `011122233${i < 10 ? '0' + i : i}`,
-      address: `منطقة سكنية عشوائية ${i + 1}`,
-      birthDate: '1988-04-20',
+      name: name,
+      nationalId: `2850909${30000 + i}`,
+      phone: `012${Math.floor(Math.random() * 100000000)}`,
+      address: `منطقة ${region.name}، شارع جانبي`,
+      birthDate: '1985-09-09',
       branchId: branch.id,
       regionId: region.id,
-      status: BeneficiaryStatus.ACTIVE,
+      status: status,
       type: BeneficiaryType.INDIVIDUAL,
-      categoryId: INITIAL_CATEGORIES[(i + 2) % 5].id,
-      createdAt: new Date(Date.now() - (i * 3600000)).toISOString()
+      categoryIds: [catId],
+      createdAt: new Date().toISOString()
     });
   }
 
