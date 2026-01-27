@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // --- Types & Enums ---
 export enum Role {
-  ADMIN = 'Admin',
-  MANAGER = 'Manager',
-  STAFF = 'Staff'
+  ADMIN = 'مدير النظام',
+  MANAGER = 'مسؤول فرع',
+  STAFF = 'عضو فرع'
 }
 
 export enum BeneficiaryStatus {
@@ -13,9 +13,14 @@ export enum BeneficiaryStatus {
 }
 
 export enum BeneficiaryType {
-  INDIVIDUAL = 'فرد',
+  INDIVIDUAL = 'فرد مستقل',
   FAMILY_HEAD = 'رب أسرة',
-  FAMILY_MEMBER = 'فرد أسرة'
+  FAMILY_MEMBER = 'فرد تابع لأسرة'
+}
+
+export interface BeneficiaryCategory {
+  id: string;
+  name: string; // مثال: فقير، يتيم، ذوي احتياجات خاصة
 }
 
 export interface Branch {
@@ -38,6 +43,7 @@ export interface User {
   password?: string;
   role: Role;
   branchId: string;
+  isFirstLogin?: boolean;
 }
 
 export interface Beneficiary {
@@ -51,16 +57,9 @@ export interface Beneficiary {
   branchId: string;
   status: BeneficiaryStatus;
   type: BeneficiaryType;
-  familyId?: string;
+  categoryId?: string; // تصنيف الحالة
+  familyId?: string; // لربط الفرد برب الأسرة
   createdAt: string;
-}
-
-export interface Family {
-  id: string;
-  name: string;
-  headId: string;
-  branchId: string;
-  membersCount: number;
 }
 
 export interface AuditLog {
@@ -74,31 +73,20 @@ export interface AuditLog {
 }
 
 // --- Initial Mock Data ---
+const INITIAL_CATEGORIES: BeneficiaryCategory[] = [
+  { id: 'cat1', name: 'فقير' },
+  { id: 'cat2', name: 'يتيم' },
+  { id: 'cat3', name: 'أرملة' },
+  { id: 'cat4', name: 'ذوي احتياجات خاصة' },
+];
+
 const INITIAL_BRANCHES: Branch[] = [
-  { id: 'b1', name: 'الفرع الرئيسي - القاهرة', location: 'القاهرة، مدينة نصر', createdAt: new Date().toISOString() },
-  { id: 'b2', name: 'فرع الجيزة', location: 'الجيزة، الدقي', createdAt: new Date().toISOString() },
+  { id: 'b1', name: 'الفرع الرئيسي', location: 'القاهرة', createdAt: new Date().toISOString() },
+  { id: 'b2', name: 'فرع الجيزة', location: 'الجيزة', createdAt: new Date().toISOString() },
 ];
 
 const INITIAL_USERS: User[] = [
-  { id: 'u1', name: 'أحمد المسؤول', username: 'admin', password: '123', role: Role.ADMIN, branchId: 'b1' },
-  { id: 'u2', name: 'محمد مدير الجيزة', username: 'manager', password: '123', role: Role.MANAGER, branchId: 'b2' },
-  { id: 'u3', name: 'سارة موظفة القاهرة', username: 'staff', password: '123', role: Role.STAFF, branchId: 'b1' },
-];
-
-const INITIAL_BENEFICIARIES: Beneficiary[] = [
-  { 
-    id: 'ben1', 
-    name: 'محمود عبد الله', 
-    nationalId: '12345678901234', 
-    phone: '01011223344', 
-    address: 'شارع 10، المعادي', 
-    birthDate: '1985-05-15',
-    branchId: 'b1', 
-    regionId: '',
-    status: BeneficiaryStatus.ACTIVE, 
-    type: BeneficiaryType.INDIVIDUAL, 
-    createdAt: new Date().toISOString() 
-  },
+  { id: 'u1', name: 'مدير النظام العام', username: 'admin', password: '123', role: Role.ADMIN, branchId: 'b1', isFirstLogin: false },
 ];
 
 // --- Store Context & Provider ---
@@ -107,14 +95,14 @@ interface StoreContextType {
   regions: Region[];
   users: User[];
   beneficiaries: Beneficiary[];
-  families: Family[];
+  categories: BeneficiaryCategory[];
   logs: AuditLog[];
   isDarkMode: boolean;
   setBranches: (data: Branch[]) => void;
   setRegions: (data: Region[]) => void;
   saveUsers: (data: User[]) => void;
   setBeneficiaries: (data: Beneficiary[]) => void;
-  setFamilies: (data: Family[]) => void;
+  setCategories: (data: BeneficiaryCategory[]) => void;
   addLog: (user: User, action: string, entityType: string, entityId: string) => void;
   toggleDarkMode: () => void;
 }
@@ -136,11 +124,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [beneficiaries, setBeneficiariesState] = useState<Beneficiary[]>(() => {
     const item = localStorage.getItem('beneficiaries');
-    return item ? JSON.parse(item) : INITIAL_BENEFICIARIES;
-  });
-  const [families, setFamiliesState] = useState<Family[]>(() => {
-    const item = localStorage.getItem('families');
     return item ? JSON.parse(item) : [];
+  });
+  const [categories, setCategoriesState] = useState<BeneficiaryCategory[]>(() => {
+    const item = localStorage.getItem('categories');
+    return item ? JSON.parse(item) : INITIAL_CATEGORIES;
   });
   const [logs, setLogsState] = useState<AuditLog[]>(() => {
     const item = localStorage.getItem('audit_logs');
@@ -170,9 +158,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('beneficiaries', JSON.stringify(data));
   };
 
-  const setFamilies = (data: Family[]) => {
-    setFamiliesState(data);
-    localStorage.setItem('families', JSON.stringify(data));
+  const setCategories = (data: BeneficiaryCategory[]) => {
+    setCategoriesState(data);
+    localStorage.setItem('categories', JSON.stringify(data));
   };
 
   const addLog = (user: User, action: string, entityType: string, entityId: string) => {
@@ -202,8 +190,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      branches, regions, users, beneficiaries, families, logs, isDarkMode,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setFamilies, addLog, toggleDarkMode
+      branches, regions, users, beneficiaries, categories, logs, isDarkMode,
+      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, addLog, toggleDarkMode
     }}>
       {children}
     </StoreContext.Provider>
