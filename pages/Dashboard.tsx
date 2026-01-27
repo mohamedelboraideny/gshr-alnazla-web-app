@@ -69,8 +69,8 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
              ))}
            </div>
            <div className="h-4 w-px bg-gray-200 dark:bg-gray-700"></div>
-           <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-             {isAdmin ? 'مدير النظام' : user.role}
+           <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+             {isAdmin ? 'System Admin' : user.role}
            </span>
         </div>
       </div>

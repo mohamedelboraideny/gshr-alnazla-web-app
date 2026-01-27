@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // --- Types & Enums ---
 export enum Role {
-  ADMIN = 'مدير النظام',
-  MANAGER = 'مسؤول فرع',
-  STAFF = 'عضو فرع'
+  ADMIN = 'Admin',
+  MANAGER = 'Manager',
+  STAFF = 'Staff'
 }
 
 export enum BeneficiaryStatus {
@@ -111,57 +111,64 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
   const names = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'ليلى', 'فاطمة', 'زينب', 'هدى', 'عبير', 'خالد', 'عمر', 'سعيد', 'كريم', 'نورهان', 'منى', 'يوسف', 'عبد الله'];
   const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي'];
   
-  // 1. Create 20 Family Heads
-  for (let i = 1; i <= 20; i++) {
-    const headId = `head_${i}`;
+  // 1. Create 20 Family Heads (distributed across 5 branches)
+  for (let i = 0; i < 20; i++) {
+    const headId = `head_${i+1}`;
     const branch = INITIAL_BRANCHES[i % 5];
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
-    
-    data.push({
+    const categoryId = INITIAL_CATEGORIES[i % 5].id;
+    const address = `شارع ${i * 2 + 1}، بلوك ${i + 1}`;
+    const createdAt = new Date(Date.now() - (i * 86400000)).toISOString();
+
+    const headName = `${names[i % names.length]} ${lastNames[i % lastNames.length]} ${lastNames[(i+1) % lastNames.length]}`;
+
+    const head: Beneficiary = {
       id: headId,
-      name: `${names[i % names.length]} ${lastNames[i % lastNames.length]} ${lastNames[(i+1) % lastNames.length]}`,
+      name: headName,
       nationalId: `2900101010${1000 + i}`,
       phone: `010203040${i < 10 ? '0' + i : i}`,
-      address: `شارع ${i * 2}، بلوك ${i}`,
+      address: address,
       birthDate: '1975-06-12',
       branchId: branch.id,
       regionId: region.id,
       status: BeneficiaryStatus.ACTIVE,
       type: BeneficiaryType.FAMILY_HEAD,
-      categoryId: INITIAL_CATEGORIES[i % 5].id,
-      createdAt: new Date(Date.now() - (i * 86400000)).toISOString()
-    });
+      categoryId: categoryId,
+      createdAt: createdAt
+    };
+    data.push(head);
 
     // 2. Add 3 Members for each Family (60 members)
     for (let j = 1; j <= 3; j++) {
       data.push({
         id: `member_${i}_${j}`,
-        name: `${names[(i + j + 5) % names.length]} ${data[data.length-1].name.split(' ')[0]}`,
+        // Use a different first name + Head's first name as father name
+        name: `${names[(i + j + 5) % names.length]} ${headName.split(' ')[0]}`,
         nationalId: `3100101010${2000 + (i * 10) + j}`,
         phone: '',
-        address: data[data.length-1].address,
+        address: address, // Inherit address
         birthDate: '2010-01-01',
         branchId: branch.id,
         regionId: region.id,
         status: BeneficiaryStatus.ACTIVE,
         type: BeneficiaryType.FAMILY_MEMBER,
-        categoryId: data[data.length-1].categoryId,
+        categoryId: categoryId, // Inherit category
         familyId: headId,
-        createdAt: data[data.length-1].createdAt
+        createdAt: createdAt
       });
     }
   }
 
   // 3. Add 20 Independent Individuals
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 0; i < 20; i++) {
     const branch = INITIAL_BRANCHES[i % 5];
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
     data.push({
-      id: `ind_${i}`,
+      id: `ind_${i+1}`,
       name: `${names[(i + 10) % names.length]} ${lastNames[(i + 5) % lastNames.length]} (مستقل)`,
       nationalId: `2850101010${3000 + i}`,
       phone: `011122233${i < 10 ? '0' + i : i}`,
-      address: `منطقة سكنية عشوائية ${i}`,
+      address: `منطقة سكنية عشوائية ${i + 1}`,
       birthDate: '1988-04-20',
       branchId: branch.id,
       regionId: region.id,
