@@ -112,7 +112,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             <div className="flex items-center gap-2">
                <div className={`w-2.5 h-2.5 rounded-full ${isAdmin ? 'bg-purple-500' : 'bg-emerald-500'} animate-pulse`}></div>
                <span className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                 {isAdmin ? 'الإدارة المركزية' : `فرع: ${branchName}`}
+                 {isAdmin ? 'الإدارة العامة' : `فرع: ${branchName}`}
                </span>
             </div>
           </div>
