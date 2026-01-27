@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useStore, Role, User } from '../store.tsx';
 import { History, ShieldAlert } from 'lucide-react';
@@ -6,6 +7,15 @@ const AuditLog: React.FC<{ user: User }> = ({ user }) => {
   const { logs } = useStore();
   
   const canAccess = user.role === Role.ADMIN || user.role === Role.MANAGER;
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const time = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    return `${day}/${month}/${year} - ${time}`;
+  };
 
   if (!canAccess) {
     return (
@@ -52,7 +62,7 @@ const AuditLog: React.FC<{ user: User }> = ({ user }) => {
                      <p className="text-[10px] font-mono text-gray-300">ID: {log.entityId}</p>
                   </td>
                   <td className="px-6 py-4 text-xs text-gray-500">
-                    {new Date(log.timestamp).toLocaleString('ar-EG')}
+                    {formatDate(log.timestamp)}
                   </td>
                 </tr>
               ))}

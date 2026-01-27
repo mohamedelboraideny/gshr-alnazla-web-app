@@ -82,91 +82,96 @@ const INITIAL_CATEGORIES: BeneficiaryCategory[] = [
 ];
 
 const INITIAL_BRANCHES: Branch[] = [
-  { id: 'b1', name: 'الفرع الرئيسي - القاهرة', location: 'القصر العيني، القاهرة', createdAt: '2023-01-01' },
-  { id: 'b2', name: 'فرع الجيزة', location: 'شارع الهرم، الجيزة', createdAt: '2023-02-15' },
-  { id: 'b3', name: 'فرع الإسكندرية', location: 'محطة الرمل، الإسكندرية', createdAt: '2023-03-10' },
+  { id: 'b1', name: 'المركز الرئيسي - القاهرة', location: 'وسط البلد، القاهرة', createdAt: '2023-01-01' },
+  { id: 'b2', name: 'فرع الجيزة', location: 'الدقي، الجيزة', createdAt: '2023-02-15' },
+  { id: 'b3', name: 'فرع الإسكندرية', location: 'سموحة، الإسكندرية', createdAt: '2023-03-10' },
   { id: 'b4', name: 'فرع أسوان', location: 'كورنيش النيل، أسوان', createdAt: '2023-05-20' },
-  { id: 'b5', name: 'فرع طنطا', location: 'ميدان المحطة، طنطا', createdAt: '2023-06-01' },
+  { id: 'b5', name: 'فرع طنطا', location: 'شارع البحر، طنطا', createdAt: '2023-06-01' },
 ];
 
 const INITIAL_REGIONS: Region[] = [
-  { id: 'r1', name: 'حي السيدة زينب', branchId: 'b1' },
-  { id: 'r2', name: 'حي الدقي', branchId: 'b2' },
-  { id: 'r3', name: 'منطقة سموحة', branchId: 'b3' },
-  { id: 'r4', name: 'حي غرب طنطا', branchId: 'b5' },
-  { id: 'r5', name: 'المنشية', branchId: 'b3' },
-  { id: 'r6', name: 'فيصل', branchId: 'b2' },
+  { id: 'r1', name: 'السيدة زينب', branchId: 'b1' },
+  { id: 'r2', name: 'الحسين', branchId: 'b1' },
+  { id: 'r3', name: 'العجوزة', branchId: 'b2' },
+  { id: 'r4', name: 'فيصل', branchId: 'b2' },
+  { id: 'r5', name: 'المنتزة', branchId: 'b3' },
+  { id: 'r6', name: 'سيدي بشر', branchId: 'b3' },
+  { id: 'r7', name: 'أول أسوان', branchId: 'b4' },
+  { id: 'r8', name: 'حي طنطاوي', branchId: 'b5' },
 ];
 
 const INITIAL_USERS: User[] = [
-  { id: 'u1', name: 'أحمد علي (المدير العام)', username: 'admin', password: '123', role: Role.ADMIN, branchId: 'b1', isFirstLogin: false },
-  { id: 'u2', name: 'سارة محمود (مدير الجيزة)', username: 'manager_giza', password: '123', role: Role.MANAGER, branchId: 'b2', isFirstLogin: false },
-  { id: 'u3', name: 'محمد حسن (موظف الإسكندرية)', username: 'staff_alex', password: '123', role: Role.STAFF, branchId: 'b3', isFirstLogin: false },
+  { id: 'u1', name: 'أحمد الإدريسي', username: 'admin', password: '123', role: Role.ADMIN, branchId: 'b1', isFirstLogin: false },
+  { id: 'u2', name: 'سناء يوسف', username: 'manager', password: '123', role: Role.MANAGER, branchId: 'b2', isFirstLogin: false },
+  { id: 'u3', name: 'ياسر كمال', username: 'staff', password: '123', role: Role.STAFF, branchId: 'b3', isFirstLogin: false },
 ];
 
-// Helper to generate 100 beneficiaries
 const generateMockBeneficiaries = (): Beneficiary[] => {
   const data: Beneficiary[] = [];
-  const names = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'ليلى', 'فاطمة', 'زينب', 'هدى', 'عبير', 'خالد', 'عمر', 'سعيد'];
-  const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم'];
+  const names = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'ليلى', 'فاطمة', 'زينب', 'هدى', 'عبير', 'خالد', 'عمر', 'سعيد', 'كريم', 'نورهان', 'منى', 'يوسف', 'عبد الله'];
+  const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي'];
   
-  // Create 20 Family Heads first
+  // 1. Create 20 Family Heads (20 Families)
   for (let i = 1; i <= 20; i++) {
     const headId = `head_${i}`;
     const branch = INITIAL_BRANCHES[i % 5];
+    const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
+    
     data.push({
       id: headId,
-      name: `${names[i % names.length]} ${lastNames[i % lastNames.length]} (رب أسرة)`,
-      nationalId: `2901010${1000000 + i}`,
+      name: `${names[i % names.length]} ${lastNames[i % lastNames.length]} ${lastNames[(i+1) % lastNames.length]}`,
+      nationalId: `2900101010${1000 + i}`,
       phone: `010203040${i < 10 ? '0' + i : i}`,
-      address: `شارع رقم ${i}, الحي السكني`,
-      birthDate: '1975-05-15',
+      address: `شارع ${i * 2}، بلوك ${i}`,
+      birthDate: '1975-06-12',
       branchId: branch.id,
-      regionId: INITIAL_REGIONS.find(r => r.branchId === branch.id)?.id || 'r1',
+      regionId: region.id,
       status: BeneficiaryStatus.ACTIVE,
       type: BeneficiaryType.FAMILY_HEAD,
       categoryId: INITIAL_CATEGORIES[i % 5].id,
-      createdAt: new Date().toISOString()
+      createdAt: new Date(Date.now() - (i * 86400000)).toISOString()
     });
 
-    // Each family head has 3 members
+    // 2. Add 3 Members for each Family (60 members)
     for (let j = 1; j <= 3; j++) {
       data.push({
         id: `member_${i}_${j}`,
-        name: `${names[(i+j) % names.length]} ${data[data.length-1].name.split(' ')[0]}`,
-        nationalId: `3101010${2000000 + (i * 10) + j}`,
+        name: `${names[(i + j + 5) % names.length]} ${data[data.length-1].name.split(' ')[0]}`,
+        nationalId: `3100101010${2000 + (i * 10) + j}`,
         phone: '',
         address: data[data.length-1].address,
         birthDate: '2010-01-01',
         branchId: branch.id,
-        regionId: data[data.length-1].regionId,
+        regionId: region.id,
         status: BeneficiaryStatus.ACTIVE,
         type: BeneficiaryType.FAMILY_MEMBER,
-        categoryId: INITIAL_CATEGORIES[i % 5].id,
+        categoryId: data[data.length-1].categoryId,
         familyId: headId,
-        createdAt: new Date().toISOString()
+        createdAt: data[data.length-1].createdAt
       });
     }
   }
 
-  // Fill the rest with independent individuals to reach ~100
-  for (let i = 81; i <= 100; i++) {
+  // 3. Add 20 Independent Individuals (Total 100)
+  for (let i = 1; i <= 20; i++) {
     const branch = INITIAL_BRANCHES[i % 5];
+    const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
     data.push({
       id: `ind_${i}`,
-      name: `${names[i % names.length]} ${lastNames[i % lastNames.length]} (مستقل)`,
-      nationalId: `2851010${3000000 + i}`,
-      phone: `011506070${i}`,
-      address: `منطقة عشوائية ${i}`,
-      birthDate: '1985-08-10',
+      name: `${names[(i + 10) % names.length]} ${lastNames[(i + 5) % lastNames.length]} (مستقل)`,
+      nationalId: `2850101010${3000 + i}`,
+      phone: `011122233${i < 10 ? '0' + i : i}`,
+      address: `منطقة سكنية عشوائية ${i}`,
+      birthDate: '1988-04-20',
       branchId: branch.id,
-      regionId: INITIAL_REGIONS.find(r => r.branchId === branch.id)?.id || 'r1',
+      regionId: region.id,
       status: BeneficiaryStatus.ACTIVE,
       type: BeneficiaryType.INDIVIDUAL,
-      categoryId: INITIAL_CATEGORIES[i % 5].id,
-      createdAt: new Date().toISOString()
+      categoryId: INITIAL_CATEGORIES[(i + 2) % 5].id,
+      createdAt: new Date(Date.now() - (i * 3600000)).toISOString()
     });
   }
+
   return data;
 };
 
@@ -188,6 +193,7 @@ interface StoreContextType {
   setCategories: (data: BeneficiaryCategory[]) => void;
   addLog: (user: User, action: string, entityType: string, entityId: string) => void;
   toggleDarkMode: () => void;
+  resetToSeedData: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -216,8 +222,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [logs, setLogsState] = useState<AuditLog[]>(() => {
     const item = localStorage.getItem('audit_logs');
     return item ? JSON.parse(item) : [
-      { id: 'l1', userId: 'u1', userName: 'أحمد علي', action: 'تسجيل دخول', entityType: 'نظام', entityId: '-', timestamp: new Date().toISOString() },
-      { id: 'l2', userId: 'u1', userName: 'أحمد علي', action: 'إضافة', entityType: 'مستفيد', entityId: 'head_1', timestamp: new Date(Date.now() - 3600000).toISOString() }
+      { id: 'l1', userId: 'u1', userName: 'أحمد الإدريسي', action: 'تسجيل دخول', entityType: 'النظام', entityId: '-', timestamp: new Date().toISOString() },
+      { id: 'l2', userId: 'u1', userName: 'أحمد الإدريسي', action: 'إضافة', entityType: 'مستفيد (رب أسرة)', entityId: 'head_1', timestamp: new Date(Date.now() - 3600000).toISOString() },
+      { id: 'l3', userId: 'u2', userName: 'سناء يوسف', action: 'تعديل', entityType: 'منطقة', entityId: 'r3', timestamp: new Date(Date.now() - 7200000).toISOString() }
     ];
   });
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -274,10 +281,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const resetToSeedData = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
   return (
     <StoreContext.Provider value={{
       branches, regions, users, beneficiaries, categories, logs, isDarkMode,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, addLog, toggleDarkMode
+      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, addLog, toggleDarkMode, resetToSeedData
     }}>
       {children}
     </StoreContext.Provider>

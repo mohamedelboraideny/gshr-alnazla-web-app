@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useStore, User } from '../store.tsx';
 import { LogIn, Lock, User as UserIcon, AlertCircle, KeyRound, ShieldCheck } from 'lucide-react';
@@ -130,10 +131,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </button>
             </form>
           )}
-
-          <div className="text-center mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <p className="text-[10px] text-gray-400 font-medium">نظام قصر النزلة للأرشفة الرقمية v2.0</p>
-          </div>
         </div>
       </div>
     </div>

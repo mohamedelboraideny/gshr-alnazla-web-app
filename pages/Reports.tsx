@@ -3,7 +3,6 @@ import React, { useMemo } from 'react';
 import { useStore, User, Role, BeneficiaryType, BeneficiaryStatus } from '../store.tsx';
 import { BarChart3, PieChart, TrendingUp, Users, Printer, MapPin, Tag } from 'lucide-react';
 
-// ProgressBar defined as a separate functional component with React.FC to handle the key prop correctly in lists.
 const ProgressBar: React.FC<{ label: string, value: number, max: number, colorClass: string }> = ({ label, value, max, colorClass }) => {
   const percentage = max > 0 ? (value / max) * 100 : 0;
   return (
@@ -34,6 +33,13 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     return age;
+  };
+
+  const formatDate = (date: Date) => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const reportData = useMemo(() => {
@@ -85,15 +91,14 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
         </button>
       </div>
 
-      {/* Header for Print Only */}
       <div className="hidden print:block border-b-2 border-emerald-600 pb-6 mb-8">
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-2xl font-bold text-emerald-800">تقرير بيانات الجمعية الخيرية</h1>
-            <p className="text-sm text-gray-500 mt-1">تاريخ الاستخراج: {new Date().toLocaleDateString('ar-EG')}</p>
+            <p className="text-sm text-gray-500 mt-1">تاريخ الاستخراج: {formatDate(new Date())}</p>
           </div>
           <div className="text-left">
-            <p className="font-bold text-gray-800">قصر النزلة للأرشفة الرقمية</p>
+            <p className="font-bold text-gray-800">إدارة الجمعية الخيرية الرقمية</p>
             <p className="text-xs text-gray-400">{isAdmin ? 'الإدارة العامة' : 'تقرير الفرع الخاص'}</p>
           </div>
         </div>
@@ -114,7 +119,6 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
           </div>
           <div className="space-y-4">
             {Object.entries(reportData.categories).map(([name, count]) => (
-              // Fix: Cast 'count' to number to resolve 'unknown' type inference from Object.entries in some environments
               <ProgressBar key={name} label={name} value={count as number} max={reportData.total} colorClass="bg-emerald-500" />
             ))}
             {Object.keys(reportData.categories).length === 0 && <p className="text-center text-gray-400 py-4">لا توجد بيانات كافية</p>}

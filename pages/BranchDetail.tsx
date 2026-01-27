@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore, Role, User } from '../store.tsx';
@@ -9,6 +10,15 @@ const BranchDetail: React.FC<{ user: User }> = ({ user: currentUser }) => {
   const { branches, users, beneficiaries, regions, isDarkMode } = useStore();
 
   const branch = branches.find(b => b.id === id);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   if (!branch) {
     return (
       <div className="text-center py-20">
@@ -100,7 +110,7 @@ const BranchDetail: React.FC<{ user: User }> = ({ user: currentUser }) => {
                 </div>
                 <div className="text-left">
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{regions.find(r => r.id === b.regionId)?.name || '---'}</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(b.createdAt).toLocaleDateString('ar-EG')}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500">{formatDate(b.createdAt)}</p>
                 </div>
               </div>
             ))}

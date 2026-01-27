@@ -300,7 +300,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                   </div>
               </div>
 
-              {modalType === BeneficiaryType.INDIVIDUAL && (
+              {/* Fix: Object literal may only specify known properties. Update modalType state directly instead of formData.type */}
+              {(modalType === BeneficiaryType.INDIVIDUAL || modalType === BeneficiaryType.FAMILY_MEMBER) && (
                 <div className="p-5 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800 space-y-3">
                    <div className="flex items-center gap-2">
                       <UsersIcon size={14} className="text-emerald-600" />
@@ -308,7 +309,12 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                    </div>
                    <select 
                       className="w-full px-4 py-2 bg-white dark:bg-gray-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 shadow-sm" 
-                      value={formData.familyId} onChange={(e) => setFormData({ ...formData, familyId: e.target.value, type: e.target.value ? BeneficiaryType.FAMILY_MEMBER : BeneficiaryType.INDIVIDUAL })}
+                      value={formData.familyId} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, familyId: val });
+                        setModalType(val ? BeneficiaryType.FAMILY_MEMBER : BeneficiaryType.INDIVIDUAL);
+                      }}
                     >
                       <option value="">هذا الفرد مستقل (ليس تابعاً لأسرة)</option>
                       {familyHeads.map(h => <option key={h.id} value={h.id}>تابع لأسرة: {h.name}</option>)}

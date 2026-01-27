@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, Users, Building2, UserPlus, History, LogOut, UserCircle, Map, BarChart3, Sun, Moon, Tag
+  LayoutDashboard, Users, Building2, UserPlus, History, LogOut, UserCircle, Map, BarChart3, Sun, Moon, Tag, RotateCcw
 } from 'lucide-react';
 import { User, Role, useStore } from '../store.tsx';
 
@@ -12,24 +12,30 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
-  const { isDarkMode, toggleDarkMode } = useStore();
+  const { isDarkMode, toggleDarkMode, resetToSeedData } = useStore();
   
-  // توحيد التحقق من الأدوار بناءً على النصوص العربية
-  const isAdmin = user.role === Role.ADMIN; // 'مدير النظام'
-  const isManager = user.role === Role.MANAGER; // 'مسؤول فرع'
+  // التحقق الدقيق من الأدوار بناءً على Enums
+  const isAdmin = user.role === Role.ADMIN;
+  const isManager = user.role === Role.MANAGER;
   
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم' },
     { to: '/beneficiaries', icon: <Users size={20} />, label: 'المستفيدين' },
+    
+    // يراها المدير العام ومدير الفرع
     ...(isAdmin || isManager ? [
       { to: '/regions', icon: <Map size={20} />, label: 'المناطق' },
       { to: '/reports', icon: <BarChart3 size={20} />, label: 'التقارير الإحصائية' },
     ] : []),
+    
+    // يراها المدير العام فقط
     ...(isAdmin ? [
       { to: '/statuses', icon: <Tag size={20} />, label: 'تصنيفات الحالات' },
       { to: '/branches', icon: <Building2 size={20} />, label: 'الفروع' },
       { to: '/users', icon: <UserPlus size={20} />, label: 'الموظفين' },
     ] : []),
+    
+    // سجل التعديلات للمدراء
     ...(isAdmin || isManager ? [
        { to: '/logs', icon: <History size={20} />, label: 'سجل التعديلات' },
     ] : []),
@@ -66,7 +72,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+          <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
+            {isAdmin && (
+               <button
+                onClick={resetToSeedData}
+                title="إعادة ضبط كافة البيانات للمصنع"
+                className="flex items-center gap-3 px-4 py-2 w-full rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs font-bold"
+              >
+                <RotateCcw size={16} />
+                <span>إعادة ضبط البيانات</span>
+              </button>
+            )}
             <button
               onClick={onLogout}
               className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-bold text-sm"
@@ -81,7 +97,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           <header className="h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-8 flex items-center justify-between sticky top-0 z-40">
             <div className="flex items-center gap-2">
                <Building2 size={16} className="text-emerald-600" />
-               <span className="text-xs font-bold text-gray-600 dark:text-gray-400">فرع: {user.branchId}</span>
+               <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide">الفرع: {user.branchId}</span>
             </div>
             
             <div className="flex items-center gap-6">
@@ -90,7 +106,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               </button>
               
               <div className="flex items-center gap-3 border-r border-gray-100 dark:border-gray-800 pr-6">
-                <div className="text-left">
+                <div className="text-left text-right">
                   <p className="font-bold text-xs dark:text-gray-200 leading-none">{user.name}</p>
                   <p className="text-[9px] text-emerald-600 font-bold mt-1 uppercase tracking-wider">{user.role}</p>
                 </div>
