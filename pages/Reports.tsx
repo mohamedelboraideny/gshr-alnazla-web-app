@@ -1,6 +1,23 @@
+
 import React, { useMemo } from 'react';
 import { useStore, User, Role, BeneficiaryType, BeneficiaryStatus } from '../store.tsx';
 import { BarChart3, PieChart, TrendingUp, Users, Printer, MapPin, Tag } from 'lucide-react';
+
+// ProgressBar defined as a separate functional component with React.FC to handle the key prop correctly in lists.
+const ProgressBar: React.FC<{ label: string, value: number, max: number, colorClass: string }> = ({ label, value, max, colorClass }) => {
+  const percentage = max > 0 ? (value / max) * 100 : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span className="font-medium text-gray-700 dark:text-gray-300">{label}</span>
+        <span className="text-gray-500 font-bold">{value} ({Math.round(percentage)}%)</span>
+      </div>
+      <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+        <div className={`${colorClass} h-2 rounded-full transition-all`} style={{ width: `${percentage}%` }}></div>
+      </div>
+    </div>
+  );
+};
 
 const Reports: React.FC<{ user: User }> = ({ user }) => {
   const { beneficiaries, branches, categories } = useStore();
@@ -50,21 +67,6 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const ProgressBar = ({ label, value, max, colorClass }: { label: string, value: number, max: number, colorClass: string }) => {
-    const percentage = max > 0 ? (value / max) * 100 : 0;
-    return (
-      <div className="space-y-1">
-        <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-700 dark:text-gray-300">{label}</span>
-          <span className="text-gray-500 font-bold">{value} ({Math.round(percentage)}%)</span>
-        </div>
-        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-          <div className={`${colorClass} h-2 rounded-full transition-all`} style={{ width: `${percentage}%` }}></div>
-        </div>
-      </div>
-    );
   };
 
   return (
