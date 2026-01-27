@@ -100,11 +100,11 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
       <div className="hidden print:block border-b-2 border-emerald-600 pb-6 mb-8">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-bold text-emerald-800">تقرير بيانات الجمعية الخيرية</h1>
+            <h1 className="text-2xl font-bold text-emerald-800">تقرير بيانات النظام</h1>
             <p className="text-sm text-gray-500 mt-1">تاريخ الاستخراج: {formatDate(new Date())}</p>
           </div>
           <div className="text-left">
-            <p className="font-bold text-gray-800">إدارة الجمعية الخيرية الرقمية</p>
+            <p className="font-bold text-gray-800">الجمعية الشرعية - فرع النزلة</p>
             <p className="text-xs text-gray-400">{isAdmin ? 'الإدارة العامة' : 'تقرير الفرع الخاص'}</p>
           </div>
         </div>

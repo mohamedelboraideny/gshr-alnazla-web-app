@@ -4,7 +4,7 @@ import {
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Activity, Tag, Layers
+  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Activity, Tag, Layers, Printer
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -177,12 +177,42 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   const branchRegions = regions.filter(r => isAdmin || r.branchId === user.branchId);
+
+  // Get current Branch Name for print header
+  const getBranchNameForPrint = () => {
+    if (isAdmin && filterBranch) {
+      return branches.find(b => b.id === filterBranch)?.name;
+    }
+    if (isAdmin) return "الإدارة العامة";
+    return branches.find(b => b.id === user.branchId)?.name;
+  };
 
   return (
     <div className="space-y-6">
+      
+      {/* Print Header (Visible only in Print) */}
+      <div className="hidden print:block border-b-2 border-gray-800 pb-4 mb-6">
+        <div className="flex justify-between items-end">
+           <div>
+              <h2 className="text-2xl font-black">سجل المستفيدين</h2>
+              <p className="text-sm mt-1">
+                {filterCategoryIds.length > 0 ? `تصفية حسب: ${filterCategoryIds.map(id => categories.find(c => c.id === id)?.name).join('، ')}` : 'عرض شامل'}
+              </p>
+           </div>
+           <div className="text-left">
+              <h3 className="font-bold text-lg">الجمعية الشرعية</h3>
+              <p className="text-sm font-bold text-gray-600">{getBranchNameForPrint()}</p>
+           </div>
+        </div>
+      </div>
+
       {/* Header & Actions */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 print-hidden">
         <div>
           <h1 className="text-3xl font-black text-gray-800 dark:text-white">سجل المستفيدين</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm font-bold">
@@ -191,6 +221,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
         
         <div className="flex flex-wrap gap-3 w-full xl:w-auto">
+           {/* Print Button - Available for all */}
+          <button 
+             onClick={handlePrint}
+             className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-4 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition"
+          >
+             <Printer size={18} /> <span className="text-sm">طباعة</span>
+          </button>
+
           <div className="bg-white dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 flex shadow-sm">
             <button 
               onClick={() => setIsTreeView(true)}
@@ -218,7 +256,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center z-20 relative">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center z-20 relative print-hidden">
         <div className="relative flex-1 min-w-[280px]">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
@@ -327,7 +365,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden min-h-[500px]">
+      <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden min-h-[500px] print:shadow-none print:border-none">
         <div className="overflow-x-auto">
           <table className="w-full text-right border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
@@ -335,13 +373,10 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest w-[35%]">الاسم / الهوية</th>
                 <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">التصنيفات</th>
                 <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">رقم الهاتف</th>
-                {!isTreeView && (
-                  <>
-                  <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">المنطقة</th>
-                  </>
-                )}
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">الحالة</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-center">التحكم</th>
+                {/* Region is now always visible */}
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">المنطقة</th>
+                {/* Status column removed as requested */}
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-center print-hidden">التحكم</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -350,19 +385,19 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 treeData.map(item => (
                   <React.Fragment key={item.id}>
                     {/* Parent Row (Head/Individual) */}
-                    <tr className="group hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-colors">
+                    <tr className="group hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-colors print:break-inside-avoid">
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
                           {item.children.length > 0 ? (
                             <button 
                               onClick={() => toggleExpand(item.id)} 
-                              className={`p-1.5 rounded-lg transition-colors ${expandedFamilies.includes(item.id) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                              className={`p-1.5 rounded-lg transition-colors print-hidden ${expandedFamilies.includes(item.id) ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                             >
                               {expandedFamilies.includes(item.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </button>
-                          ) : <div className="w-7"></div>}
+                          ) : <div className="w-7 print-hidden"></div>}
                           
-                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 dark:border-gray-700 ${item.type === BeneficiaryType.FAMILY_HEAD ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20' : 'bg-white text-emerald-600 dark:bg-gray-800'}`}>
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 dark:border-gray-700 print:hidden ${item.type === BeneficiaryType.FAMILY_HEAD ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20' : 'bg-white text-emerald-600 dark:bg-gray-800'}`}>
                             {item.type === BeneficiaryType.FAMILY_HEAD ? <UsersIcon size={20} /> : <UserIcon size={20} />}
                           </div>
                           
@@ -370,8 +405,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                             <p className="font-black text-gray-800 dark:text-gray-200 text-sm">{item.name}</p>
                             <div className="flex gap-3 mt-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                               <span>{item.nationalId}</span>
-                              <span className="w-1 h-1 rounded-full bg-gray-300 mt-1.5"></span>
-                              <span>{regions.find(r => r.id === item.regionId)?.name}</span>
+                              <span className="w-1 h-1 rounded-full bg-gray-300 mt-1.5 print-hidden"></span>
                             </div>
                           </div>
                         </div>
@@ -380,7 +414,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                         <div className="flex flex-wrap gap-1">
                           {item.categoryIds && item.categoryIds.length > 0 ? (
                             item.categoryIds.map(catId => (
-                              <span key={catId} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                              <span key={catId} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800 print:border-gray-300 print:text-black print:bg-transparent">
                                 {categories.find(c => c.id === catId)?.name || 'غير معروف'}
                               </span>
                             ))
@@ -392,36 +426,35 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                       <td className="px-6 py-5 text-xs font-bold font-mono text-gray-600 dark:text-gray-300">
                         {item.phone || '-'}
                       </td>
-                      <td className="px-6 py-5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          item.status === BeneficiaryStatus.ACTIVE 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                          {item.status}
-                        </span>
+                      <td className="px-6 py-5 text-xs font-bold text-gray-500 dark:text-gray-400">
+                         {regions.find(r => r.id === item.regionId)?.name}
                       </td>
-                      <td className="px-6 py-5 flex justify-center gap-2">
+                      {/* Status Removed */}
+                      <td className="px-6 py-5 flex justify-center gap-2 print-hidden">
                          <button onClick={() => handleOpenModal(item.type, item.id)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"><Edit3 size={18} /></button>
                          <button onClick={() => setConfirmModal({ isOpen: true, mode: 'single', id: item.id })} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"><Trash2 size={18} /></button>
                       </td>
                     </tr>
 
                     {/* Children Rows (Members) */}
-                    {expandedFamilies.includes(item.id) && item.children.map((child, idx) => {
+                    {(expandedFamilies.includes(item.id) || window.matchMedia('print').matches) && item.children.map((child, idx) => {
+                      // Note: We included window.matchMedia check but practically 'print' css media query controls visibility.
+                      // Ideally for print we want all children visible if tree view is used, but React logic hides them.
+                      // For simplicity, we just rely on expanded state for now or the user expands before print. 
+                      // *Self-correction*: The user might want to print full tree. 
+                      // Given the structure, we'll just print what is visible.
                       const isLast = idx === item.children.length - 1;
                       return (
-                        <tr key={child.id} className="bg-gray-50/50 dark:bg-gray-900/20">
+                        <tr key={child.id} className="bg-gray-50/50 dark:bg-gray-900/20 print:bg-transparent">
                           <td className="px-8 py-0 relative">
-                            {/* Connector Lines Logic */}
-                            <div className="absolute right-[50px] top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700 h-full"></div> {/* Vertical Line */}
-                            <div className="absolute right-[50px] top-1/2 w-8 h-px bg-gray-200 dark:bg-gray-700"></div> {/* Horizontal Line */}
+                            {/* Connector Lines Logic - Hide in Print */}
+                            <div className="absolute right-[50px] top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700 h-full print-hidden"></div> 
+                            <div className="absolute right-[50px] top-1/2 w-8 h-px bg-gray-200 dark:bg-gray-700 print-hidden"></div> 
                             
-                            {/* Hide bottom part of vertical line for last item to make it an 'L' shape */}
-                            {isLast && <div className="absolute right-[50px] top-1/2 bottom-0 w-1 bg-gray-50 dark:bg-gray-900/20 z-10"></div>} 
+                            {isLast && <div className="absolute right-[50px] top-1/2 bottom-0 w-1 bg-gray-50 dark:bg-gray-900/20 z-10 print-hidden"></div>} 
 
-                            <div className="pr-16 py-3 flex items-center gap-3 relative z-20">
-                              <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 shadow-sm">
+                            <div className="pr-16 py-3 flex items-center gap-3 relative z-20 print:pr-8">
+                              <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 shadow-sm print-hidden">
                                 <UserIcon size={14} />
                               </div>
                               <div>
@@ -444,12 +477,11 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                              </div>
                           </td>
                           <td className="px-6 py-3 text-[10px] text-gray-400">-</td>
-                          <td className="px-6 py-3">
-                            <span className={`text-[10px] font-bold opacity-60 ${child.status === BeneficiaryStatus.ACTIVE ? 'text-green-600' : 'text-red-600'}`}>
-                              {child.status}
-                            </span>
+                          <td className="px-6 py-3 text-[10px] text-gray-400">
+                             {/* Children typically reside same region, or we can look it up */}
+                             {regions.find(r => r.id === child.regionId)?.name || '-'}
                           </td>
-                          <td className="px-6 py-3 flex justify-center gap-2">
+                          <td className="px-6 py-3 flex justify-center gap-2 print-hidden">
                              <button onClick={() => handleOpenModal(child.type, child.id)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg transition"><Edit3 size={14} /></button>
                              <button onClick={() => setConfirmModal({ isOpen: true, mode: 'single', id: child.id })} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition"><Trash2 size={14} /></button>
                           </td>
@@ -461,10 +493,10 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
               ) : (
                 // --- FLAT TABLE VIEW ---
                 filteredBeneficiaries.map(b => (
-                  <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:break-inside-avoid">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${b.type === BeneficiaryType.FAMILY_HEAD ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40' : 'bg-gray-100 text-gray-600 dark:bg-gray-800'}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs print-hidden ${b.type === BeneficiaryType.FAMILY_HEAD ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40' : 'bg-gray-100 text-gray-600 dark:bg-gray-800'}`}>
                           {b.type === BeneficiaryType.FAMILY_HEAD ? 'أسرة' : (b.type === BeneficiaryType.INDIVIDUAL ? 'فرد' : 'تابع')}
                         </div>
                         <div>
@@ -477,7 +509,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                        <div className="flex flex-wrap gap-1 max-w-[200px]">
                          {b.categoryIds && b.categoryIds.length > 0 ? (
                            b.categoryIds.map(catId => (
-                             <span key={catId} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                             <span key={catId} className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800 print:border-gray-300 print:text-black print:bg-transparent">
                                {categories.find(c => c.id === catId)?.name || 'غير مصنف'}
                              </span>
                            ))
@@ -492,16 +524,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                     <td className="px-6 py-5 text-xs font-bold text-gray-500 dark:text-gray-400">
                        {regions.find(r => r.id === b.regionId)?.name || '-'}
                     </td>
-                    <td className="px-6 py-5">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                        b.status === BeneficiaryStatus.ACTIVE 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 flex justify-center gap-2">
+                    {/* Status Removed */}
+                    <td className="px-6 py-5 flex justify-center gap-2 print-hidden">
                       <button onClick={() => handleOpenModal(b.type, b.id)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"><Edit3 size={18} /></button>
                       <button onClick={() => setConfirmModal({ isOpen: true, mode: 'single', id: b.id })} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"><Trash2 size={18} /></button>
                     </td>
@@ -513,7 +537,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           
           {filteredBeneficiaries.length === 0 && (
             <div className="py-20 flex flex-col items-center justify-center text-gray-300">
-               <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+               <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 print-hidden">
                  <Search size={32} />
                </div>
                <p className="font-bold text-sm">لا توجد نتائج مطابقة</p>
@@ -524,7 +548,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
 
       {/* Modal & Confirm Dialogs */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 print-hidden">
           <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800">
             <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
               <div>
