@@ -13,8 +13,10 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const { isDarkMode, toggleDarkMode } = useStore();
-  const isAdmin = user.role === Role.ADMIN;
-  const isManager = user.role === Role.MANAGER;
+  
+  // توحيد التحقق من الأدوار بناءً على النصوص العربية
+  const isAdmin = user.role === Role.ADMIN; // 'مدير النظام'
+  const isManager = user.role === Role.MANAGER; // 'مسؤول فرع'
   
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم' },
@@ -79,7 +81,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           <header className="h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-8 flex items-center justify-between sticky top-0 z-40">
             <div className="flex items-center gap-2">
                <Building2 size={16} className="text-emerald-600" />
-               <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{user.branchId === 'b1' ? 'الإدارة العامة' : 'فرع: ' + user.branchId}</span>
+               <span className="text-xs font-bold text-gray-600 dark:text-gray-400">فرع: {user.branchId}</span>
             </div>
             
             <div className="flex items-center gap-6">
