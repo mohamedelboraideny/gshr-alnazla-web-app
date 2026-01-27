@@ -1,36 +1,39 @@
+
 import React from 'react';
 import { useStore, Role, User, BeneficiaryType } from '../store.tsx';
-import { Users, Building2, UserPlus, History, Tag, ShieldAlert, Plus, Edit3, Trash2, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
+import { Users, Building2, UserPlus, History, Tag, ShieldAlert, Plus, Edit3, Trash2, CheckCircle2, TrendingUp } from 'lucide-react';
 
 const Dashboard: React.FC<{ user: User }> = ({ user }) => {
   const { branches, users, beneficiaries, logs, categories } = useStore();
 
   const isAdmin = user.role === Role.ADMIN;
-  const isManager = user.role === Role.MANAGER;
   
+  // فلترة البيانات بدقة حسب الصلاحية
   const visibleBeneficiaries = isAdmin 
     ? beneficiaries 
     : beneficiaries.filter(b => b.branchId === user.branchId);
 
   const familiesCount = visibleBeneficiaries.filter(b => b.type === BeneficiaryType.FAMILY_HEAD).length;
   const individualCount = visibleBeneficiaries.filter(b => b.type === BeneficiaryType.INDIVIDUAL).length;
+  const membersCount = visibleBeneficiaries.filter(b => b.type === BeneficiaryType.FAMILY_MEMBER).length;
 
   const stats = [
-    { label: 'إجمالي المستفيدين', value: visibleBeneficiaries.length, icon: <Users size={20} />, color: 'bg-blue-500', shadow: 'shadow-blue-500/20' },
-    { label: 'إجمالي الأسر', value: familiesCount, icon: <Tag size={20} />, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/20' },
-    ...(isAdmin ? [
-      { label: 'فروع الجمعية', value: branches.length, icon: <Building2 size={20} />, color: 'bg-purple-500', shadow: 'shadow-purple-500/20' },
-      { label: 'موظفي النظام', value: users.length, icon: <UserPlus size={20} />, color: 'bg-orange-500', shadow: 'shadow-orange-500/20' },
-    ] : []),
-    { label: 'أفراد مستقلين', value: individualCount, icon: <Users size={20} />, color: 'bg-indigo-500', shadow: 'shadow-indigo-500/20' },
+    { label: 'إجمالي المستفيدين', value: visibleBeneficiaries.length, icon: <Users size={24} />, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
+    { label: 'عدد الأسر', value: familiesCount, icon: <Building2 size={24} />, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' },
+    { label: 'أفراد مستقلين', value: individualCount, icon: <UserPlus size={24} />, color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20' },
+    { label: 'أفراد تابعين', value: membersCount, icon: <Tag size={24} />, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' },
   ];
+
+  if (isAdmin) {
+    stats.push(
+      { label: 'عدد الفروع', value: branches.length, icon: <Building2 size={24} />, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' },
+      { label: 'موظفي النظام', value: users.length, icon: <Users size={24} />, color: 'text-pink-600 bg-pink-50 dark:bg-pink-900/20' }
+    );
+  }
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
+    return d.toLocaleDateString('en-GB'); // dd/mm/yyyy
   };
 
   const getLogIcon = (action: string) => {
@@ -41,99 +44,118 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
   };
 
   const getLogColor = (action: string) => {
-    if (action.includes('إضافة')) return 'bg-emerald-500';
-    if (action.includes('تعديل')) return 'bg-blue-500';
-    if (action.includes('حذف')) return 'bg-red-500';
+    if (action.includes('إضافة')) return 'bg-emerald-500 shadow-emerald-200';
+    if (action.includes('تعديل')) return 'bg-blue-500 shadow-blue-200';
+    if (action.includes('حذف')) return 'bg-red-500 shadow-red-200';
     return 'bg-gray-500';
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-4xl font-black text-gray-800 dark:text-white tracking-tight">لوحة التحكم</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-3 font-bold flex items-center gap-2">
-             مرحباً بك في نظام إدارة المستفيدين، <span className="text-emerald-600 dark:text-emerald-400 font-black">{user.name}</span>
+          <h1 className="text-3xl font-black text-gray-800 dark:text-white tracking-tight">لوحة التحكم</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">
+             نظرة عامة على أداء الجمعية وإحصائيات المستفيدين
           </p>
         </div>
-        <div className="bg-white dark:bg-gray-800 px-6 py-3 rounded-[1.25rem] border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-           <span className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">
-             {isAdmin ? 'الإدارة العامة للنظام' : `فرع: ${branches.find(b => b.id === user.branchId)?.name}`}
+        <div className="bg-white dark:bg-gray-800 px-5 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-3">
+           <div className="flex -space-x-2 space-x-reverse">
+             {users.slice(0,3).map(u => (
+               <div key={u.id} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white dark:border-gray-800 flex items-center justify-center text-xs font-bold text-gray-600">
+                 {u.name[0]}
+               </div>
+             ))}
+           </div>
+           <div className="h-4 w-px bg-gray-200 dark:bg-gray-700"></div>
+           <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+             {isAdmin ? 'مدير النظام' : user.role}
            </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className={`bg-white dark:bg-gray-800 p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-6 transition-all hover:scale-[1.02] hover:shadow-2xl hover:border-emerald-200 dark:hover:border-emerald-900/50`}>
-            <div className={`w-14 h-14 rounded-2xl text-white flex items-center justify-center shrink-0 ${stat.color} shadow-lg shadow-gray-200 dark:shadow-none`}>
-              {stat.icon}
+          <div key={idx} className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300 group">
+            <div className="flex justify-between items-start mb-4">
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${stat.color} transition-transform group-hover:scale-110`}>
+                {stat.icon}
+              </div>
+              <span className="bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-300 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">إحصاء</span>
             </div>
             <div>
-              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1.5">{stat.label}</p>
-              <p className="text-4xl font-black text-gray-800 dark:text-white leading-none tracking-tighter">{stat.value}</p>
+              <p className="text-3xl font-black text-gray-800 dark:text-white mb-1">{stat.value}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-bold">{stat.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="p-8 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/20">
-            <h3 className="font-black text-gray-800 dark:text-white flex items-center gap-3 text-lg">
-              <History size={22} className="text-emerald-600" />
-              آخر النشاطات المسجلة
+        {/* Recent Activity */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
+          <div className="p-8 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
+            <h3 className="font-bold text-xl text-gray-800 dark:text-white flex items-center gap-3">
+              <History className="text-emerald-500" />
+              آخر العمليات
             </h3>
           </div>
-          <div className="p-8">
-            <div className="relative border-r-2 border-gray-100 dark:border-gray-700 pr-8 space-y-10">
+          <div className="p-8 flex-1">
+            <div className="space-y-8 relative before:absolute before:right-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100 dark:before:bg-gray-700">
               {logs.slice(0, 5).map((log) => (
-                <div key={log.id} className="relative group">
-                  <div className={`absolute -right-[43px] top-0 w-7 h-7 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${getLogColor(log.action)}`}>
+                <div key={log.id} className="relative flex items-center gap-6 group">
+                  <div className={`relative z-10 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${getLogColor(log.action)}`}>
                     {getLogIcon(log.action)}
                   </div>
-                  
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-sm font-black text-gray-800 dark:text-gray-100">{log.action}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400">{log.entityType}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        بواسطة: <span className="font-black text-gray-700 dark:text-gray-200">{log.userName}</span>
-                      </p>
+                  <div className="flex-1 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-emerald-200 dark:hover:border-emerald-900 transition-colors">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-bold text-gray-800 dark:text-white text-sm">{log.action} <span className="text-emerald-600">{log.entityType}</span></span>
+                      <span className="text-[10px] text-gray-400 font-mono">{formatDate(log.timestamp)}</span>
                     </div>
-                    <div className="text-[10px] font-black text-gray-400 bg-gray-50 dark:bg-gray-900/50 px-4 py-2 rounded-xl border border-gray-100 dark:border-gray-800 whitespace-nowrap">
-                       {new Date(log.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                       <span className="mx-3 opacity-20">|</span>
-                       {formatDate(log.timestamp)}
-                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      بواسطة: <span className="font-bold">{log.userName}</span>
+                    </p>
                   </div>
                 </div>
               ))}
+              {logs.length === 0 && (
+                <div className="text-center py-10">
+                   <ShieldAlert size={48} className="mx-auto text-gray-200 mb-2" />
+                   <p className="text-gray-400 text-sm">لا توجد نشاطات مسجلة</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 space-y-10">
-          <h3 className="font-black text-gray-800 dark:text-white border-b border-gray-50 dark:border-gray-700 pb-6 text-lg">توزيع حالات المستفيدين</h3>
-          <div className="space-y-8">
+        {/* Category Distribution */}
+        <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 p-8 flex flex-col">
+          <h3 className="font-bold text-xl text-gray-800 dark:text-white mb-8 border-b border-gray-50 dark:border-gray-700 pb-4">تصنيفات الحالات</h3>
+          <div className="space-y-6 flex-1 overflow-y-auto custom-scrollbar pr-2">
              {categories.map(cat => {
                const count = visibleBeneficiaries.filter(b => b.categoryId === cat.id).length;
                const percentage = visibleBeneficiaries.length > 0 ? (count / visibleBeneficiaries.length) * 100 : 0;
                return (
-                 <div key={cat.id} className="space-y-3">
-                    <div className="flex justify-between items-end">
-                       <span className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-tighter">{cat.name}</span>
-                       <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{count}</span>
+                 <div key={cat.id} className="group">
+                    <div className="flex justify-between items-center mb-2">
+                       <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{cat.name}</span>
+                       <span className="text-xs font-black text-gray-800 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-lg">{count}</span>
                     </div>
-                    <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex">
-                       <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${percentage}%` }}></div>
+                    <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                       <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000 group-hover:bg-emerald-400 relative" style={{ width: `${percentage}%` }}>
+                       </div>
                     </div>
                  </div>
                )
              })}
+          </div>
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+             <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+                <TrendingUp size={20} />
+                <span className="text-xs font-bold">يتم تحديث البيانات لحظياً</span>
+             </div>
           </div>
         </div>
       </div>
