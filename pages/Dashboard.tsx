@@ -60,14 +60,6 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 px-5 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-3">
-           <div className="flex -space-x-2 space-x-reverse">
-             {users.slice(0,3).map(u => (
-               <div key={u.id} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white dark:border-gray-800 flex items-center justify-center text-xs font-bold text-gray-600">
-                 {u.name[0]}
-               </div>
-             ))}
-           </div>
-           <div className="h-4 w-px bg-gray-200 dark:bg-gray-700"></div>
            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
              {isAdmin ? 'System Admin' : user.role}
            </span>

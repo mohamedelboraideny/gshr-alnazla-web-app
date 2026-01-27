@@ -4,7 +4,7 @@ import {
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Activity
+  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Activity, Tag
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -233,7 +233,19 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
            </select>
         </div>
 
-        {/* New Status Filter */}
+        {/* Category Filter */}
+        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
+           <Tag size={16} className="text-gray-400" />
+           <select 
+             className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0 w-32"
+             value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
+           >
+              <option value="">كل التصنيفات</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+           </select>
+        </div>
+
+        {/* Status Filter */}
         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
            <Activity size={16} className="text-gray-400" />
            <select 
