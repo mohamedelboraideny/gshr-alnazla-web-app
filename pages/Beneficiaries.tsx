@@ -4,7 +4,7 @@ import {
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Activity, Tag
+  Filter, CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Activity, Tag, Layers
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -12,9 +12,12 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const { beneficiaries, setBeneficiaries, regions, categories, addLog, branches } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
-  const [filterStatus, setFilterStatus] = useState(''); // New Status Filter
+  
+  // Multi-select Category Filter State
+  const [filterCategoryIds, setFilterCategoryIds] = useState<string[]>([]);
+  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
+  const [matchAllCategories, setMatchAllCategories] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<BeneficiaryType>(BeneficiaryType.INDIVIDUAL);
@@ -32,7 +35,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     address: '',
     birthDate: '',
     regionId: '',
-    categoryIds: [] as string[], // Changed to array
+    categoryIds: [] as string[],
     familyId: '',
     status: BeneficiaryStatus.ACTIVE
   };
@@ -59,14 +62,23 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         (b.phone && b.phone.includes(searchTerm));
       
       const matchesRegion = filterRegion ? b.regionId === filterRegion : true;
-      // Update filter category logic for array
-      const matchesCategory = filterCategory ? b.categoryIds.includes(filterCategory) : true;
       const matchesBranch = filterBranch ? b.branchId === filterBranch : true;
-      const matchesStatus = filterStatus ? b.status === filterStatus : true;
 
-      return matchesSearch && matchesRegion && matchesCategory && matchesBranch && matchesStatus;
+      // Multi-Category Filter Logic
+      let matchesCategory = true;
+      if (filterCategoryIds.length > 0) {
+        if (matchAllCategories) {
+          // AND Logic: Must have ALL selected categories (Intersection)
+          matchesCategory = filterCategoryIds.every(id => b.categoryIds?.includes(id));
+        } else {
+          // OR Logic: Must have ANY of selected categories (Union)
+          matchesCategory = b.categoryIds?.some(catId => filterCategoryIds.includes(catId)) || false;
+        }
+      }
+
+      return matchesSearch && matchesRegion && matchesCategory && matchesBranch;
     });
-  }, [beneficiaries, searchTerm, filterRegion, filterCategory, filterBranch, filterStatus, user.branchId, isAdmin]);
+  }, [beneficiaries, searchTerm, filterRegion, filterCategoryIds, filterBranch, user.branchId, isAdmin, matchAllCategories]);
 
   // 2. Tree Data Construction
   const treeData = useMemo(() => {
@@ -107,7 +119,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         setFormData({ 
           name: b.name, nationalId: b.nationalId, phone: b.phone || '', address: b.address,
           birthDate: b.birthDate || '', regionId: b.regionId || '', 
-          categoryIds: b.categoryIds || [], // Handle potential legacy string (though store fixed)
+          categoryIds: b.categoryIds || [],
           familyId: b.familyId || '', status: b.status
         });
         setEditId(id);
@@ -119,7 +131,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     setIsModalOpen(true);
   };
 
-  const toggleCategorySelection = (catId: string) => {
+  const toggleFormCategory = (catId: string) => {
     setFormData(prev => {
       const current = prev.categoryIds;
       if (current.includes(catId)) {
@@ -127,6 +139,13 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       } else {
         return { ...prev, categoryIds: [...current, catId] };
       }
+    });
+  };
+
+  const toggleFilterCategory = (catId: string) => {
+    setFilterCategoryIds(prev => {
+      if (prev.includes(catId)) return prev.filter(id => id !== catId);
+      return [...prev, catId];
     });
   };
 
@@ -199,7 +218,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center z-20 relative">
         <div className="relative flex-1 min-w-[280px]">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
@@ -233,29 +252,77 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
            </select>
         </div>
 
-        {/* Category Filter */}
-        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
-           <Tag size={16} className="text-gray-400" />
-           <select 
-             className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0 w-32"
-             value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
+        {/* Multi-Select Category Filter */}
+        <div className="relative">
+           <button 
+             onClick={() => setIsCatDropdownOpen(!isCatDropdownOpen)}
+             className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-xs font-bold ${
+               filterCategoryIds.length > 0 
+                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-400' 
+                 : 'bg-gray-50 border-gray-100 text-gray-600 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300'
+             }`}
            >
-              <option value="">كل التصنيفات</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-           </select>
-        </div>
+              <Tag size={16} className={filterCategoryIds.length > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"} />
+              <span>
+                {filterCategoryIds.length > 0 ? `${filterCategoryIds.length} تصنيفات` : 'كل التصنيفات'}
+              </span>
+              <ChevronDown size={14} />
+           </button>
+           
+           {isCatDropdownOpen && (
+             <>
+               <div className="fixed inset-0 z-10" onClick={() => setIsCatDropdownOpen(false)}></div>
+               <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                 {/* Match All Toggle */}
+                 <div 
+                   onClick={() => setMatchAllCategories(!matchAllCategories)}
+                   className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 cursor-pointer flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700/80 transition-colors"
+                 >
+                    <div className="flex items-center gap-2">
+                      <Layers size={14} className="text-gray-500" />
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-200">تطابق الكل (AND)</span>
+                    </div>
+                    <div className={`w-8 h-4 rounded-full p-0.5 duration-300 ${matchAllCategories ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                       <div className={`bg-white w-3 h-3 rounded-full shadow-sm duration-300 ${matchAllCategories ? '-translate-x-4' : ''}`}></div>
+                    </div>
+                 </div>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
-           <Activity size={16} className="text-gray-400" />
-           <select 
-             className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0 w-24"
-             value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-           >
-              <option value="">كل الحالات</option>
-              <option value={BeneficiaryStatus.ACTIVE}>{BeneficiaryStatus.ACTIVE}</option>
-              <option value={BeneficiaryStatus.SUSPENDED}>{BeneficiaryStatus.SUSPENDED}</option>
-           </select>
+                 <div className="p-2 max-h-64 overflow-y-auto custom-scrollbar">
+                   {categories.map(c => {
+                     const isSelected = filterCategoryIds.includes(c.id);
+                     return (
+                       <div 
+                         key={c.id} 
+                         onClick={() => toggleFilterCategory(c.id)}
+                         className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                       >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                            isSelected 
+                              ? 'bg-emerald-500 border-emerald-500' 
+                              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                          }`}>
+                            {isSelected && <Check size={10} className="text-white" />}
+                          </div>
+                          <span className={`text-xs font-bold ${isSelected ? 'text-gray-800 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                            {c.name}
+                          </span>
+                       </div>
+                     )
+                   })}
+                 </div>
+                 {filterCategoryIds.length > 0 && (
+                   <div className="p-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50/30">
+                     <button 
+                       onClick={() => { setFilterCategoryIds([]); setIsCatDropdownOpen(false); }}
+                       className="w-full py-2 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                     >
+                       مسح الكل
+                     </button>
+                   </div>
+                 )}
+               </div>
+             </>
+           )}
         </div>
       </div>
 
@@ -533,7 +600,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                         return (
                           <div 
                             key={c.id} 
-                            onClick={() => toggleCategorySelection(c.id)}
+                            onClick={() => toggleFormCategory(c.id)}
                             className={`cursor-pointer px-4 py-3 rounded-xl border text-xs font-bold transition-all duration-200 flex items-center justify-between ${
                               isSelected 
                                 ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-500/50 dark:text-emerald-400' 
