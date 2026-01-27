@@ -85,8 +85,8 @@ const INITIAL_BRANCHES: Branch[] = [
   { id: 'b1', name: 'المركز الرئيسي - القاهرة', location: 'وسط البلد، القاهرة', createdAt: '2023-01-01' },
   { id: 'b2', name: 'فرع الجيزة', location: 'الدقي، الجيزة', createdAt: '2023-02-15' },
   { id: 'b3', name: 'فرع الإسكندرية', location: 'سموحة، الإسكندرية', createdAt: '2023-03-10' },
-  { id: 'b4', name: 'فرع أسوان', location: 'كورنيش النيل، أسوان', createdAt: '2023-05-20' },
-  { id: 'b5', name: 'فرع طنطا', location: 'شارع البحر، طنطا', createdAt: '2023-06-01' },
+  { id: 'b4', name: 'فرع أسوان', location: 'أسوان الجديدة', createdAt: '2023-05-20' },
+  { id: 'b5', name: 'فرع طنطا', location: 'ميدان المحطة، طنطا', createdAt: '2023-06-01' },
 ];
 
 const INITIAL_REGIONS: Region[] = [
@@ -96,8 +96,8 @@ const INITIAL_REGIONS: Region[] = [
   { id: 'r4', name: 'فيصل', branchId: 'b2' },
   { id: 'r5', name: 'المنتزة', branchId: 'b3' },
   { id: 'r6', name: 'سيدي بشر', branchId: 'b3' },
-  { id: 'r7', name: 'أول أسوان', branchId: 'b4' },
-  { id: 'r8', name: 'حي طنطاوي', branchId: 'b5' },
+  { id: 'r7', name: 'حي الصداقة', branchId: 'b4' },
+  { id: 'r8', name: 'سيجر', branchId: 'b5' },
 ];
 
 const INITIAL_USERS: User[] = [
@@ -111,7 +111,7 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
   const names = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'ليلى', 'فاطمة', 'زينب', 'هدى', 'عبير', 'خالد', 'عمر', 'سعيد', 'كريم', 'نورهان', 'منى', 'يوسف', 'عبد الله'];
   const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي'];
   
-  // 1. Create 20 Family Heads (20 Families)
+  // 1. Create 20 Family Heads
   for (let i = 1; i <= 20; i++) {
     const headId = `head_${i}`;
     const branch = INITIAL_BRANCHES[i % 5];
@@ -152,7 +152,7 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
     }
   }
 
-  // 3. Add 20 Independent Individuals (Total 100)
+  // 3. Add 20 Independent Individuals
   for (let i = 1; i <= 20; i++) {
     const branch = INITIAL_BRANCHES[i % 5];
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
@@ -223,8 +223,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const item = localStorage.getItem('audit_logs');
     return item ? JSON.parse(item) : [
       { id: 'l1', userId: 'u1', userName: 'أحمد الإدريسي', action: 'تسجيل دخول', entityType: 'النظام', entityId: '-', timestamp: new Date().toISOString() },
-      { id: 'l2', userId: 'u1', userName: 'أحمد الإدريسي', action: 'إضافة', entityType: 'مستفيد (رب أسرة)', entityId: 'head_1', timestamp: new Date(Date.now() - 3600000).toISOString() },
-      { id: 'l3', userId: 'u2', userName: 'سناء يوسف', action: 'تعديل', entityType: 'منطقة', entityId: 'r3', timestamp: new Date(Date.now() - 7200000).toISOString() }
     ];
   });
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {

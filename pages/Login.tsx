@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useStore, User } from '../store.tsx';
 import { LogIn, Lock, User as UserIcon, AlertCircle, KeyRound, ShieldCheck } from 'lucide-react';
@@ -48,38 +47,38 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100 dark:border-gray-800 transition-all">
+      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100 dark:border-gray-800 transition-all">
         
-        <div className="bg-emerald-600 p-8 text-white text-center">
-          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
-            {step === 'login' ? <LogIn size={28} /> : <KeyRound size={28} />}
+        <div className="bg-emerald-600 p-10 text-white text-center">
+          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-5 backdrop-blur-md">
+            {step === 'login' ? <LogIn size={32} /> : <KeyRound size={32} />}
           </div>
-          <h1 className="text-xl font-bold">
-            {step === 'login' ? 'نظام إدارة الجمعية' : 'تحديث كلمة المرور'}
+          <h1 className="text-2xl font-black tracking-tight">
+            {step === 'login' ? 'بوابة الجمعية' : 'تأمين الحساب'}
           </h1>
-          <p className="text-emerald-100 text-xs mt-1 opacity-80">
-            {step === 'login' ? 'تسجيل الدخول للموظفين' : 'يرجى تغيير كلمة المرور الافتراضية'}
+          <p className="text-emerald-100 text-[10px] mt-2 font-bold uppercase tracking-widest opacity-70">
+            {step === 'login' ? 'Charity Management Portal' : 'Update Default Password'}
           </p>
         </div>
 
-        <div className="p-6">
+        <div className="p-8">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl flex items-center gap-2 text-xs border border-red-100 dark:border-red-900/30 mb-4 animate-shake">
-              <AlertCircle size={16} />
-              <span>{error}</span>
+            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-2xl flex items-center gap-3 text-xs border border-red-100 dark:border-red-900/30 mb-6 animate-pulse">
+              <AlertCircle size={18} />
+              <span className="font-bold">{error}</span>
             </div>
           )}
 
           {step === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 px-1">اسم المستخدم</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">اسم المستخدم</label>
                 <div className="relative">
-                  <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <UserIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                   <input 
                     type="text" required
-                    className="w-full pr-10 pl-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm"
-                    placeholder="User_123"
+                    className="w-full pr-12 pl-4 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm font-bold shadow-sm"
+                    placeholder="Username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                   />
@@ -87,12 +86,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 px-1">كلمة المرور</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">كلمة المرور</label>
                 <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                   <input 
                     type="password" required
-                    className="w-full pr-10 pl-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm"
+                    className="w-full pr-12 pl-4 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm font-bold shadow-sm"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -102,30 +101,30 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
               <button 
                 type="submit"
-                className="w-full bg-emerald-600 text-white py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20 active:scale-95 text-sm"
+                className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-emerald-600/30 hover:bg-emerald-700 hover:shadow-emerald-700/40 transition-all active:scale-95 text-sm mt-4"
               >
                 دخول للنظام
               </button>
             </form>
           ) : (
-            <form onSubmit={handlePasswordUpdate} className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl text-[11px] text-blue-600 dark:text-blue-400 flex gap-2 mb-2">
-                 <ShieldCheck size={16} className="shrink-0" />
-                 <span>هذا هو دخولك الأول، يجب اختيار كلمة مرور قوية لحماية حسابك.</span>
+            <form onSubmit={handlePasswordUpdate} className="space-y-5">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl text-[11px] text-blue-600 dark:text-blue-400 flex gap-3 mb-2 border border-blue-100 dark:border-blue-900/30">
+                 <ShieldCheck size={20} className="shrink-0" />
+                 <span className="font-bold leading-relaxed">هذا هو دخولك الأول، يرجى اختيار كلمة مرور جديدة لضمان أمان البيانات.</span>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 px-1">كلمة المرور الجديدة</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">كلمة المرور الجديدة</label>
                 <input 
                   type="password" required
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none text-sm"
-                  placeholder="أدخل الكلمة الجديدة"
+                  className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none text-sm font-bold shadow-sm"
+                  placeholder="New password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
               <button 
                 type="submit"
-                className="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-600/20 text-sm"
+                className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 transition-all text-sm"
               >
                 تحديث والدخول
               </button>

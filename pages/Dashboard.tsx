@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useStore, Role, User, BeneficiaryType } from '../store.tsx';
 import { Users, Building2, UserPlus, History, Tag, ShieldAlert, Plus, Edit3, Trash2, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
@@ -58,7 +57,9 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
         </div>
         <div className="bg-white dark:bg-gray-800 px-5 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-3">
            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-           <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">متصل بالفرع: {user.branchId}</span>
+           <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+             {isAdmin ? 'الإدارة المركزية' : `متصل بفرع: ${user.branchId}`}
+           </span>
         </div>
       </div>
 
@@ -139,16 +140,6 @@ const Dashboard: React.FC<{ user: User }> = ({ user }) => {
                  </div>
                )
              })}
-          </div>
-          
-          <div className="mt-8 p-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-3xl border border-blue-100/50 dark:border-blue-800/30">
-             <div className="flex items-center gap-3 mb-2">
-                <Users size={18} className="text-blue-600" />
-                <span className="text-xs font-black text-blue-800 dark:text-blue-400">ملاحظة ذكية</span>
-             </div>
-             <p className="text-[10px] text-blue-600/80 dark:text-blue-400/60 font-bold leading-relaxed">
-                يتم تحديث هذه الإحصائيات لحظياً بناءً على العمليات التي يقوم بها أعضاء فروع الجمعية.
-             </p>
           </div>
         </div>
       </div>
