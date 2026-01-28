@@ -4,7 +4,7 @@ import {
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Tag, Layers, Printer, Baby, AlertCircle
+  CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Tag, Layers, Printer, Baby
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -33,9 +33,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const [familySearchTerm, setFamilySearchTerm] = useState('');
   const [showFamilyResults, setShowFamilyResults] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  // Validation State
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const initialForm = {
     name: '',
@@ -150,7 +147,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const handleOpenModal = (type: BeneficiaryType, id: string | null = null) => {
     setModalType(type);
     setFamilySearchTerm(''); // Reset search
-    setErrors({}); // Reset errors
     if (id) {
       const b = beneficiaries.find(x => x.id === id);
       if (b) {
@@ -189,32 +185,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     });
   };
 
-  // --- VALIDATION LOGIC ---
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) newErrors.name = 'الاسم مطلوب';
-    
-    if (!formData.nationalId.trim()) {
-      newErrors.nationalId = 'الرقم القومي مطلوب';
-    } else if (formData.nationalId.length !== 14) {
-      newErrors.nationalId = 'يجب أن يكون الرقم القومي 14 رقماً';
-    }
-
-    if (!formData.birthDate) newErrors.birthDate = 'تاريخ الميلاد مطلوب';
-    if (!formData.regionId) newErrors.regionId = 'المنطقة السكنية مطلوبة';
+  const handleSave = () => {
+    if (!formData.name.trim()) return;
     
     // Validation for Family Member
     if (modalType === BeneficiaryType.FAMILY_MEMBER && !formData.familyId) {
-      newErrors.familyId = 'يجب اختيار رب الأسرة';
+      alert('يجب اختيار رب الأسرة للمستفيد التابع');
+      return;
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = () => {
-    if (!validateForm()) return;
 
     let updatedList: Beneficiary[];
     if (editId) {
@@ -674,52 +652,23 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                   <h4 className="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2 border-b border-gray-100 dark:border-gray-700 pb-2">البيانات الشخصية</h4>
                   
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">الاسم رباعي <span className="text-red-500">*</span></label>
-                    <input 
-                      type="text" 
-                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold ${errors.name ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-transparent'}`} 
-                      value={formData.name} 
-                      onChange={e => {
-                         setFormData({...formData, name: e.target.value});
-                         if (errors.name) setErrors({...errors, name: ''});
-                      }} 
-                      placeholder="الاسم كما في البطاقة" 
-                    />
-                    {errors.name && <p className="text-red-500 text-[10px] font-bold mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.name}</p>}
+                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">الاسم رباعي</label>
+                    <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="الاسم كما في البطاقة" />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">الرقم القومي (14 رقم) <span className="text-red-500">*</span></label>
-                    <input 
-                      type="text" maxLength={14} 
-                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-mono font-bold ${errors.nationalId ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-transparent'}`} 
-                      value={formData.nationalId} 
-                      onChange={e => {
-                         setFormData({...formData, nationalId: e.target.value.replace(/\D/g, '')});
-                         if (errors.nationalId) setErrors({...errors, nationalId: ''});
-                      }} 
-                      placeholder="2900101..." 
-                    />
-                    {errors.nationalId && <p className="text-red-500 text-[10px] font-bold mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.nationalId}</p>}
+                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">الرقم القومي (14 رقم)</label>
+                    <input type="text" maxLength={14} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-mono font-bold" value={formData.nationalId} onChange={e => setFormData({...formData, nationalId: e.target.value})} placeholder="2900101..." />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">تاريخ الميلاد <span className="text-red-500">*</span></label>
-                      <input 
-                        type="date" 
-                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold ${errors.birthDate ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-transparent'}`} 
-                        value={formData.birthDate} 
-                        onChange={e => {
-                           setFormData({...formData, birthDate: e.target.value});
-                           if (errors.birthDate) setErrors({...errors, birthDate: ''});
-                        }} 
-                      />
-                      {errors.birthDate && <p className="text-red-500 text-[10px] font-bold mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.birthDate}</p>}
+                      <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">تاريخ الميلاد</label>
+                      <input type="date" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">الجنس</label>
-                      <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-transparent rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as Gender})}>
+                      <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as Gender})}>
                         <option value={Gender.MALE}>ذكر</option>
                         <option value={Gender.FEMALE}>أنثى</option>
                       </select>
@@ -733,28 +682,20 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                   
                   <div>
                     <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">رقم الهاتف</label>
-                    <input type="tel" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-transparent rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-mono font-bold" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value.replace(/\D/g, '')})} placeholder="01xxxxxxxxx" />
+                    <input type="tel" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-mono font-bold" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="01xxxxxxxxx" />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">العنوان بالتفصيل</label>
-                    <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-transparent rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="اسم الشارع، رقم المنزل..." />
+                    <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="اسم الشارع، رقم المنزل..." />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">المنطقة الجغرافية <span className="text-red-500">*</span></label>
-                    <select 
-                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold ${errors.regionId ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-transparent'}`} 
-                      value={formData.regionId} 
-                      onChange={e => {
-                         setFormData({...formData, regionId: e.target.value});
-                         if (errors.regionId) setErrors({...errors, regionId: ''});
-                      }}
-                    >
+                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">المنطقة الجغرافية</label>
+                    <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.regionId} onChange={e => setFormData({...formData, regionId: e.target.value})}>
                       <option value="">اختر المنطقة...</option>
                       {branchRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
-                    {errors.regionId && <p className="text-red-500 text-[10px] font-bold mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.regionId}</p>}
                   </div>
                </div>
 
@@ -789,7 +730,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                   {/* Family Head Search (Only for Family Member) */}
                   {modalType === BeneficiaryType.FAMILY_MEMBER && (
                     <div className="relative" ref={searchContainerRef}>
-                      <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">رب الأسرة التابع له <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5 px-1">رب الأسرة التابع له</label>
                       
                       {/* If selected, show selected card */}
                       {selectedFamilyHead ? (
@@ -812,19 +753,16 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input 
                               type="text" 
-                              className={`w-full pr-12 pl-4 py-3 bg-white dark:bg-gray-900 border-2 rounded-xl focus:border-indigo-500 outline-none text-sm font-bold ${errors.familyId ? 'border-red-500' : 'border-gray-100 dark:border-gray-700'}`}
+                              className="w-full pr-12 pl-4 py-3 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-700 rounded-xl focus:border-indigo-500 outline-none text-sm font-bold"
                               placeholder="ابحث عن رب الأسرة بالاسم أو الرقم القومي..."
                               value={familySearchTerm}
                               onChange={(e) => {
                                 setFamilySearchTerm(e.target.value);
                                 setShowFamilyResults(true);
-                                if (errors.familyId) setErrors({...errors, familyId: ''});
                               }}
                               onFocus={() => setShowFamilyResults(true)}
                             />
                           </div>
-                          {errors.familyId && <p className="text-red-500 text-[10px] font-bold mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.familyId}</p>}
-                          
                           {/* Results Dropdown */}
                           {showFamilyResults && familySearchResults.length > 0 && (
                             <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-30 max-h-48 overflow-y-auto custom-scrollbar">
@@ -835,7 +773,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                                      setFormData({...formData, familyId: head.id});
                                      setFamilySearchTerm('');
                                      setShowFamilyResults(false);
-                                     if (errors.familyId) setErrors({...errors, familyId: ''});
                                    }}
                                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-50 dark:border-gray-700 last:border-none flex justify-between items-center"
                                  >
