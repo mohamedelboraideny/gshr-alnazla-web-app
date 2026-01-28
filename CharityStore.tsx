@@ -12,6 +12,11 @@ export enum BeneficiaryStatus {
   SUSPENDED = 'موقوف'
 }
 
+export enum Gender {
+  MALE = 'ذكر',
+  FEMALE = 'أنثى'
+}
+
 export enum BeneficiaryType {
   INDIVIDUAL = 'فرد مستقل',
   FAMILY_HEAD = 'رب أسرة',
@@ -53,11 +58,12 @@ export interface Beneficiary {
   phone: string;
   address: string;
   birthDate: string;
+  gender?: Gender; // Added Gender field
   regionId?: string;
   branchId: string;
   status: BeneficiaryStatus;
   type: BeneficiaryType;
-  categoryIds: string[]; // Supports multiple categories
+  categoryIds: string[]; 
   familyId?: string;
   createdAt: string;
 }
@@ -139,7 +145,7 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
     const createdAt = new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString();
     const status = Math.random() > 0.1 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
 
-    // Create Head
+    // Create Head (Mostly male for mock data)
     data.push({
       id: headId,
       name: headName,
@@ -147,6 +153,7 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
       phone: `010${Math.floor(Math.random() * 100000000)}`,
       address: address,
       birthDate: `${1970 + Math.floor(Math.random() * 20)}-05-15`,
+      gender: Gender.MALE,
       branchId: branch.id,
       regionId: region.id,
       status: status,
@@ -171,6 +178,7 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
         phone: '', // Children usually don't have registered phone
         address: address,
         birthDate: `${birthYear}-01-01`,
+        gender: isFemale ? Gender.FEMALE : Gender.MALE,
         branchId: branch.id,
         regionId: region.id,
         status: status, // Inherit status from head
@@ -188,7 +196,8 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
     const catId = INITIAL_CATEGORIES[Math.floor(Math.random() * INITIAL_CATEGORIES.length)].id;
     
-    const firstName = rnd(firstNames);
+    const isFemale = Math.random() > 0.7; // 30% female individuals
+    const firstName = isFemale ? rnd(femaleNames) : rnd(firstNames);
     const fatherName = rnd(firstNames);
     const familyName = rnd(lastNames);
     const name = `${firstName} ${fatherName} ${familyName}`;
@@ -201,6 +210,7 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
       phone: `012${Math.floor(Math.random() * 100000000)}`,
       address: `منطقة ${region.name}، شارع جانبي`,
       birthDate: '1985-09-09',
+      gender: isFemale ? Gender.FEMALE : Gender.MALE,
       branchId: branch.id,
       regionId: region.id,
       status: status,
