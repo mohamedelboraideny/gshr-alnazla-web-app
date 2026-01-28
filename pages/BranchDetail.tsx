@@ -54,32 +54,32 @@ const BranchDetail: React.FC<{ user: User }> = ({ user: currentUser }) => {
             <Users size={20} />
             <span className="font-bold">إجمالي المستفيدين</span>
           </div>
-          <p className="text-3xl font-black dark:text-white">{branchBeneficiaries.length}</p>
+          <p className="text-3xl font-black text-gray-800 dark:text-white">{branchBeneficiaries.length}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-4 mb-2 text-indigo-600 dark:text-indigo-400">
             <UserCircle size={20} />
             <span className="font-bold">الموظفين</span>
           </div>
-          <p className="text-3xl font-black dark:text-white">{branchUsers.length}</p>
+          <p className="text-3xl font-black text-gray-800 dark:text-white">{branchUsers.length}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-4 mb-2 text-orange-600 dark:text-orange-400">
             <MapPin size={20} />
             <span className="font-bold">المناطق المسجلة</span>
           </div>
-          <p className="text-3xl font-black dark:text-white">{branchRegions.length}</p>
+          <p className="text-3xl font-black text-gray-800 dark:text-white">{branchRegions.length}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-700 font-bold flex items-center gap-2 dark:text-white">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700 font-bold flex items-center gap-2 text-gray-700 dark:text-white">
             <UserCircle size={18} /> قائمة الموظفين
           </div>
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {branchUsers.map(u => (
-              <div key={u.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+              <div key={u.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center font-bold">
                     {u.name[0]}
@@ -97,12 +97,12 @@ const BranchDetail: React.FC<{ user: User }> = ({ user: currentUser }) => {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-700 font-bold flex items-center gap-2 dark:text-white">
+          <div className="p-4 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700 font-bold flex items-center gap-2 text-gray-700 dark:text-white">
             <Users size={18} /> آخر المستفيدين المضافين
           </div>
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {branchBeneficiaries.slice(-5).reverse().map(b => (
-              <div key={b.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+              <div key={b.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                 <div>
                   <p className="font-bold text-gray-800 dark:text-gray-200">{b.name}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{b.type} - {b.phone || 'بدون هاتف'}</p>
