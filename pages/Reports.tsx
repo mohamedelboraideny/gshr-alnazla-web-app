@@ -8,7 +8,7 @@ const ProgressBar: React.FC<{ label: string, value: number, max: number, colorCl
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
         <span className="font-medium text-gray-700 dark:text-gray-300">{label}</span>
-        <span className="text-gray-500 font-bold">{value} ({Math.round(percentage)}%)</span>
+        <span className="text-gray-500 dark:text-gray-400 font-bold">{value} ({Math.round(percentage)}%)</span>
       </div>
       <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
         <div className={`${colorClass} h-2 rounded-full transition-all`} style={{ width: `${percentage}%` }}></div>
@@ -111,16 +111,16 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <ReportCard icon={<Users className="text-blue-600" />} label="إجمالي المستفيدين" value={reportData.total} color="border-blue-200" />
-        <ReportCard icon={<TrendingUp className="text-emerald-600" />} label="حالات نشطة" value={reportData.status.active} color="border-emerald-200" />
-        <ReportCard icon={<Users className="text-purple-600" />} label="أرباب أسر" value={reportData.types.familyHead} color="border-purple-200" />
-        <ReportCard icon={<Tag className="text-orange-600" />} label="أفراد تابعين" value={reportData.types.familyMember} color="border-orange-200" />
+        <ReportCard icon={<Users className="text-blue-600 dark:text-blue-400" />} label="إجمالي المستفيدين" value={reportData.total} color="border-blue-200 dark:border-blue-900/50" />
+        <ReportCard icon={<TrendingUp className="text-emerald-600 dark:text-emerald-400" />} label="حالات نشطة" value={reportData.status.active} color="border-emerald-200 dark:border-emerald-900/50" />
+        <ReportCard icon={<Users className="text-purple-600 dark:text-purple-400" />} label="أرباب أسر" value={reportData.types.familyHead} color="border-purple-200 dark:border-purple-900/50" />
+        <ReportCard icon={<Tag className="text-orange-600 dark:text-orange-400" />} label="أفراد تابعين" value={reportData.types.familyMember} color="border-orange-200 dark:border-orange-900/50" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-50 dark:border-gray-700 pb-4">
-            <BarChart3 className="text-emerald-600" size={24} />
+            <BarChart3 className="text-emerald-600 dark:text-emerald-500" size={24} />
             <h3 className="font-bold text-lg dark:text-white">توزيع الحالات حسب التصنيف</h3>
           </div>
           <div className="space-y-4">
@@ -133,7 +133,7 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
 
         <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-50 dark:border-gray-700 pb-4">
-            <PieChart className="text-indigo-600" size={24} />
+            <PieChart className="text-indigo-600 dark:text-indigo-500" size={24} />
             <h3 className="font-bold text-lg dark:text-white">الفئات العمرية</h3>
           </div>
           <div className="space-y-5">
@@ -142,7 +142,7 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
             <ProgressBar label="كبار السن (أكثر من 60)" value={reportData.ageGroups.elderly} max={reportData.total} colorClass="bg-purple-500" />
           </div>
           <div className="pt-4 border-t border-gray-50 dark:border-gray-700">
-             <div className="flex justify-between items-center text-xs text-gray-500">
+             <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                 <span>إجمالي المسجلين</span>
                 <span className="font-bold text-gray-800 dark:text-gray-200">{reportData.total} مستفيد</span>
              </div>
@@ -155,11 +155,11 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
 
 const ReportCard = ({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: number, color: string }) => (
   <div className={`bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border ${color} dark:border-gray-700 flex items-center gap-5 transition hover:shadow-md`}>
-    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl shrink-0">
+    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl shrink-0">
       {icon}
     </div>
     <div>
-      <p className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-wider">{label}</p>
+      <p className="text-[10px] text-gray-400 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider">{label}</p>
       <p className="text-2xl font-black text-gray-800 dark:text-white leading-none">{value}</p>
     </div>
   </div>

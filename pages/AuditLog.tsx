@@ -19,11 +19,11 @@ const AuditLog: React.FC<{ user: User }> = ({ user }) => {
   if (!canAccess) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-4">
-        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-full flex items-center justify-center">
+        <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center">
           <ShieldAlert size={40} />
         </div>
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">عذراً، الوصول مرفوض</h2>
-        <p className="text-gray-500 max-w-sm">سجل التعديلات متاح فقط لمدراء النظام ومسؤولي الفروع لدواعي أمنية وحماية البيانات.</p>
+        <p className="text-gray-500 dark:text-gray-400 max-w-sm">سجل التعديلات متاح فقط لمدراء النظام ومسؤولي الفروع لدواعي أمنية وحماية البيانات.</p>
       </div>
     );
   }
@@ -39,7 +39,7 @@ const AuditLog: React.FC<{ user: User }> = ({ user }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-400 text-[10px] font-bold uppercase border-b border-gray-100 dark:border-gray-700">
+              <tr className="bg-gray-50 dark:bg-gray-700/30 text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase border-b border-gray-100 dark:border-gray-700">
                 <th className="px-6 py-4">الموظف المسؤول</th>
                 <th className="px-6 py-4">نوع العملية</th>
                 <th className="px-6 py-4">الكيان المتأثر</th>
@@ -48,7 +48,7 @@ const AuditLog: React.FC<{ user: User }> = ({ user }) => {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {logs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                   <td className="px-6 py-4">
                     <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">{log.userName}</p>
                     <p className="text-[10px] text-gray-400">ID: {log.userId}</p>
@@ -58,9 +58,9 @@ const AuditLog: React.FC<{ user: User }> = ({ user }) => {
                   </td>
                   <td className="px-6 py-4">
                      <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">{log.entityType}</p>
-                     <p className="text-[10px] font-mono text-gray-300">ID: {log.entityId}</p>
+                     <p className="text-[10px] font-mono text-gray-300 dark:text-gray-500">ID: {log.entityId}</p>
                   </td>
-                  <td className="px-6 py-4 text-xs text-gray-500">
+                  <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
                     {formatDate(log.timestamp)}
                   </td>
                 </tr>
@@ -68,8 +68,8 @@ const AuditLog: React.FC<{ user: User }> = ({ user }) => {
             </tbody>
           </table>
           {logs.length === 0 && (
-            <div className="p-20 text-center text-gray-300 flex flex-col items-center gap-3">
-              <History size={64} className="opacity-10" />
+            <div className="p-20 text-center text-gray-300 dark:text-gray-600 flex flex-col items-center gap-3">
+              <History size={64} className="opacity-20" />
               <span className="font-bold">لا توجد عمليات مسجلة حالياً</span>
             </div>
           )}

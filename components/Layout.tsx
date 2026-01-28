@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Building2, UserPlus, History, LogOut, Map, BarChart3, Sun, Moon, Tag, RotateCcw, Menu, X
@@ -14,11 +14,20 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const { isDarkMode, toggleDarkMode, resetToSeedData, branches } = useStore();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+  
+  // Initialize state based on screen width (Mobile: Closed by default, Desktop: Open)
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(() => window.innerWidth >= 1024);
   
   const isAdmin = user.role === Role.ADMIN;
   const isManager = user.role === Role.MANAGER;
   
+  // Close sidebar automatically on mobile when route changes
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  }, [location]);
+
   // تعريف القوائم بناءً على الصلاحيات الصارمة
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={22} />, label: 'لوحة التحكم', allowed: true },
@@ -39,10 +48,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   return (
     <div className={`min-h-screen flex ${isDarkMode ? 'dark' : ''} bg-gray-50 dark:bg-gray-950 transition-colors duration-300`}>
       
+      {/* Mobile Overlay (Backdrop) */}
+      <div 
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${
+          isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 right-0 z-50 bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-gray-100 dark:border-gray-800
-        ${isSidebarOpen ? 'translate-x-0 w-72' : 'translate-x-full w-0 lg:translate-x-0 lg:w-72'}`}
+        className={`fixed inset-y-0 right-0 z-50 w-72 bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-gray-100 dark:border-gray-800 flex flex-col
+        ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -54,7 +71,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               <span className="font-black text-sm text-gray-800 dark:text-white truncate">الجمعية الشرعية</span>
               <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider truncate">فرع النزلة</span>
             </div>
-            <button className="lg:hidden mr-auto text-gray-400" onClick={() => setIsSidebarOpen(false)}>
+            {/* Close Button (Mobile Only) */}
+            <button className="lg:hidden mr-auto text-gray-400 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition" onClick={() => setIsSidebarOpen(false)}>
               <X size={24} />
             </button>
           </div>
@@ -101,12 +119,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       </aside>
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarOpen ? 'lg:mr-72' : ''}`}>
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full lg:mr-72`}>
         
         {/* Top Header */}
-        <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 h-20 px-4 lg:px-8 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 h-20 px-4 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl lg:hidden">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl lg:hidden">
               <Menu size={24} />
             </button>
             <div className="flex items-center gap-2">
@@ -117,7 +135,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 md:gap-6">
             <button 
               onClick={toggleDarkMode} 
               className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center transition-colors"
