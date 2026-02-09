@@ -275,7 +275,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     <div className="space-y-6">
       
       {/* --- Specialized Dynamic Print Header --- */}
-      <div className="hidden print:block mb-6 border-b-2 border-black pb-4">
+      <div className="hidden print:block mb-4 border-b-2 border-black pb-4">
         <div className="flex justify-between items-start">
            <div className="text-right">
               <h2 className="text-2xl font-black mb-1">{printSettings.title}</h2>
@@ -415,7 +415,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 treeData.map(item => (
                   <React.Fragment key={item.id}>
                     {/* Family Head Row */}
-                    <tr className="group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors print:bg-gray-100">
+                    <tr className="group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors print:bg-white">
                       <td className="px-4 py-3 relative">
                         {/* Visual indicator for Tree */}
                         {item.children.length > 0 && <div className="absolute right-0 top-0 bottom-0 w-1 bg-indigo-500 print:hidden"></div>}
@@ -650,7 +650,21 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           </table>
         </div>
         
-        {/* Dynamic Print Signatures */}
+        {/* Dynamic Print Signatures and Footer */}
+        <div className="hidden print:flex justify-between items-end mt-8 page-break-inside-avoid print-footer">
+           <div className="w-1/3 text-center">
+              <p className="font-bold text-xs">{printSettings.footerRight}</p>
+              <div className="h-12 border-b border-dotted border-gray-400 w-3/4 mx-auto mt-2"></div>
+           </div>
+           <div className="w-1/3 text-center">
+              <p className="text-[10px] text-gray-500">تمت الطباعة بواسطة نظام الجمعية الإلكتروني</p>
+              {/* CSS Counter implementation for page numbers usually happens in @page, but we can add a visual aid here */}
+           </div>
+           <div className="w-1/3 text-center">
+              <p className="font-bold text-xs">{printSettings.footerLeft}</p>
+              <div className="h-12 border-b border-dotted border-gray-400 w-3/4 mx-auto mt-2"></div>
+           </div>
+        </div>
       </div>
 
       {/* --- Print Settings Modal --- */}
