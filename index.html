@@ -27,31 +27,46 @@
 
         @media print {
             @page {
-                size: A4 landscape; /* Landscape allows more columns */
-                margin: 5mm;
+                size: A4 landscape;
+                margin: 10mm;
             }
             
-            /* Reset layout for print to avoid blank pages */
+            /* FORCE COLORS TO PRINT WITHOUT CHECKING 'BACKGROUND GRAPHICS' */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            /* --- FIX BLACK SCREEN & DARK MODE ISSUES --- */
             html, body {
-                height: auto !important;
-                min-height: 0 !important;
-                overflow: visible !important;
-                background: white !important;
+                background-color: white !important;
                 color: black !important;
+                height: auto !important;
+                overflow: visible !important;
                 font-size: 10pt;
             }
 
-            /* Hide UI elements - Fixed: Removed shadow classes from here to prevent hiding content */
-            aside, header, nav, button, .print-hidden, .modal-overlay, .no-print { 
+            /* Remove backdrop filters and overlays which look like black screens */
+            .backdrop-blur-sm, .modal-overlay, .bg-black\/60 {
+                backdrop-filter: none !important;
+                background: none !important;
+                display: none !important; /* Ensure modals don't block print */
+            }
+
+            /* Override all dark backgrounds to white/transparent */
+            .dark, .dark\:bg-gray-800, .dark\:bg-gray-900, .bg-gray-800, .bg-gray-900 {
+                background-color: white !important;
+                color: black !important;
+                border-color: #ddd !important;
+            }
+
+            /* Hide UI elements */
+            aside, header, nav, button, .print-hidden, .no-print { 
                 display: none !important; 
             }
 
-            /* Remove Shadows specifically */
-            .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl {
-                box-shadow: none !important;
-            }
-
-            /* Ensure main content takes full width */
+            /* Reset container widths */
             #root, main, .print-area {
                 width: 100% !important;
                 margin: 0 !important;
@@ -61,33 +76,18 @@
                 overflow: visible !important;
             }
 
-            /* FORCE OVERFLOW VISIBLE: This fixes the "Data not appearing" issue */
-            .overflow-hidden, .overflow-x-auto, .overflow-y-auto {
-                overflow: visible !important;
-                height: auto !important;
-            }
-
-            .print-visible {
-                display: block !important;
-            }
-
-            /* Notebook Style Table Borders */
+            /* Table Styles for Print */
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                border: 2px solid #000 !important;
+                border: 1px solid #000 !important;
                 margin-top: 10px !important;
-                page-break-inside: auto;
+                margin-bottom: 20px !important;
             }
             
-            thead {
-                display: table-header-group;
-            }
-
-            tr {
-                page-break-inside: avoid;
-                page-break-after: auto;
-            }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            tr { page-break-inside: avoid; }
 
             th, td {
                 border: 1px solid #000 !important;
@@ -97,28 +97,34 @@
             }
 
             th {
-                background-color: #f3f4f6 !important; /* Light gray for header */
-                font-weight: 900 !important;
-                border-bottom: 2px solid #000 !important;
-                -webkit-print-color-adjust: exact;
+                background-color: #f3f4f6 !important; /* Light gray header */
                 color: black !important;
+                font-weight: bold !important;
             }
 
-            /* Clear backgrounds */
-            .bg-emerald-50, .bg-gray-50, .bg-blue-50, .bg-white, .dark\:bg-gray-800, .dark\:bg-gray-900 {
-                background-color: transparent !important;
-            }
-            
-            /* Remove rounded corners and shadows */
-            div, tr, td, th {
+            /* Fix Shadow Issues */
+            .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl {
                 box-shadow: none !important;
-                border-radius: 0 !important;
-                border-color: #000 !important; /* Force borders to black */
+            }
+
+            /* --- PAGE NUMBERING FOOTER --- */
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 10mm;
+                display: flex !important;
+                justify-content: space-between;
+                align-items: center;
+                border-top: 1px solid #ccc;
+                font-size: 10px;
+                padding-top: 5px;
             }
             
-            /* Typography adjustments */
-            p, span, div, h1, h2, h3, h4 {
-                color: black !important;
+            /* Add padding to body bottom to prevent content overlapping footer */
+            body {
+                padding-bottom: 15mm !important;
             }
         }
     </style>
@@ -152,7 +158,7 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="./assets/index-kkfq4FgN.js"></script>
+  <script type="module" crossorigin src="./assets/index-BGUrad0r.js"></script>
 </head>
 <body>
     <div id="root"></div>
