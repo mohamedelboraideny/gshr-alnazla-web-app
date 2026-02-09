@@ -12,6 +12,11 @@ export enum BeneficiaryStatus {
   SUSPENDED = 'موقوف'
 }
 
+export enum SponsorshipStatus {
+  SPONSORED = 'مكفول',
+  NOT_SPONSORED = 'غير مكفول'
+}
+
 export enum Gender {
   MALE = 'ذكر',
   FEMALE = 'أنثى'
@@ -22,6 +27,32 @@ export enum BeneficiaryType {
   FAMILY_HEAD = 'رب أسرة',
   FAMILY_MEMBER = 'فرد تابع لأسرة'
 }
+
+// Educational Levels based on Egyptian System
+export const EDUCATION_LEVELS = [
+  'غير ملتحق',
+  'حضانة 1 (KG1)',
+  'حضانة 2 (KG2)',
+  'ابتدائي - الصف الأول',
+  'ابتدائي - الصف الثاني',
+  'ابتدائي - الصف الثالث',
+  'ابتدائي - الصف الرابع',
+  'ابتدائي - الصف الخامس',
+  'ابتدائي - الصف السادس',
+  'إعدادي - الصف الأول',
+  'إعدادي - الصف الثاني',
+  'إعدادي - الصف الثالث',
+  'ثانوي - الصف الأول',
+  'ثانوي - الصف الثاني',
+  'ثانوي - الصف الثالث',
+  'جامعي - سنة أولى',
+  'جامعي - سنة ثانية',
+  'جامعي - سنة ثالثة',
+  'جامعي - سنة رابعة',
+  'جامعي - سنة خامسة',
+  'جامعي - سنة سادسة',
+  'خريج'
+];
 
 export interface BeneficiaryCategory {
   id: string;
@@ -58,13 +89,16 @@ export interface Beneficiary {
   phone: string;
   address: string;
   birthDate: string;
-  gender?: Gender; // Added Gender field
+  gender?: Gender; 
   regionId?: string;
   branchId: string;
   status: BeneficiaryStatus;
+  sponsorshipStatus: SponsorshipStatus;
   type: BeneficiaryType;
   categoryIds: string[]; 
   familyId?: string;
+  educationLevel?: string;
+  schoolName?: string;
   createdAt: string;
 }
 
@@ -78,14 +112,15 @@ export interface AuditLog {
   timestamp: string;
 }
 
-// --- Large Seed Data Generation ---
+// --- Seed Data Generation ---
 const INITIAL_CATEGORIES: BeneficiaryCategory[] = [
-  { id: 'cat1', name: 'فقير' },
-  { id: 'cat2', name: 'يتيم' },
+  { id: 'cat1', name: 'فقراء' },
+  { id: 'cat2', name: 'أيتام' },
   { id: 'cat3', name: 'أرملة' },
   { id: 'cat4', name: 'ذوي احتياجات خاصة' },
   { id: 'cat5', name: 'غارمين' },
   { id: 'cat6', name: 'مطلقة' },
+  { id: 'cat7', name: 'مرضى' },
 ];
 
 const INITIAL_BRANCHES: Branch[] = [
@@ -116,106 +151,31 @@ const INITIAL_USERS: User[] = [
 const generateMockBeneficiaries = (): Beneficiary[] => {
   const data: Beneficiary[] = [];
   const firstNames = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'يوسف', 'عبد الله', 'خالد', 'عمر', 'سعيد', 'كريم', 'حسن', 'حسين'];
-  const femaleNames = ['فاطمة', 'زينب', 'مريم', 'عائشة', 'نور', 'سلمى', 'هبة', 'منى', 'سارة', 'هدى'];
   const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي', 'سالم', 'صلاح'];
 
-  // Helper to get random item
   const rnd = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
   
-  // 1. Create 25 Family Heads (distributed across branches)
-  for (let i = 0; i < 25; i++) {
-    const headId = `head_${i+1}`;
-    const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
-    const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
-    
-    // Assign 1 or 2 categories
-    const cat1 = INITIAL_CATEGORIES[i % INITIAL_CATEGORIES.length].id;
-    const cat2 = INITIAL_CATEGORIES[(i + 2) % INITIAL_CATEGORIES.length].id;
-    const categoryIds = i % 3 === 0 ? [cat1, cat2] : [cat1];
-
-    const address = `شارع ${rnd(['التحرير', 'النصر', 'الجمهورية', 'الثورة', 'النيل'])}، رقم ${Math.floor(Math.random() * 50) + 1}`;
-    
-    // Construct realistic full name
-    const firstName = rnd(firstNames);
-    const fatherName = rnd(firstNames);
-    const grandFatherName = rnd(firstNames);
-    const familyName = rnd(lastNames);
-    const headName = `${firstName} ${fatherName} ${grandFatherName} ${familyName}`;
-
-    const createdAt = new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString();
-    const status = Math.random() > 0.1 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
-
-    // Create Head (Mostly male for mock data)
-    data.push({
-      id: headId,
-      name: headName,
-      nationalId: `2${Math.floor(70 + Math.random() * 20)}0101${10000 + i}`,
-      phone: `010${Math.floor(Math.random() * 100000000)}`,
-      address: address,
-      birthDate: `${1970 + Math.floor(Math.random() * 20)}-05-15`,
-      gender: Gender.MALE,
-      branchId: branch.id,
-      regionId: region.id,
-      status: status,
-      type: BeneficiaryType.FAMILY_HEAD,
-      categoryIds: categoryIds,
-      createdAt: createdAt
-    });
-
-    // 2. Add 2-5 Members for each Family
-    const numMembers = Math.floor(Math.random() * 4) + 2; 
-    for (let j = 1; j <= numMembers; j++) {
-      const isFemale = Math.random() > 0.5;
-      const childFirstName = isFemale ? rnd(femaleNames) : rnd(firstNames);
-      const childName = `${childFirstName} ${firstName} ${fatherName} ${familyName}`;
-      
-      const birthYear = 2005 + Math.floor(Math.random() * 15);
-      
-      data.push({
-        id: `mem_${i}_${j}`,
-        name: childName,
-        nationalId: `3${birthYear.toString().substring(2)}0101${20000 + (i*100) + j}`,
-        phone: '', // Children usually don't have registered phone
-        address: address,
-        birthDate: `${birthYear}-01-01`,
-        gender: isFemale ? Gender.FEMALE : Gender.MALE,
-        branchId: branch.id,
-        regionId: region.id,
-        status: status, // Inherit status from head
-        type: BeneficiaryType.FAMILY_MEMBER,
-        categoryIds: categoryIds, // Inherit categories
-        familyId: headId,
-        createdAt: createdAt
-      });
-    }
-  }
-
-  // 3. Add 15 Independent Individuals
   for (let i = 0; i < 15; i++) {
     const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
     const catId = INITIAL_CATEGORIES[Math.floor(Math.random() * INITIAL_CATEGORIES.length)].id;
     
-    const isFemale = Math.random() > 0.7; // 30% female individuals
-    const firstName = isFemale ? rnd(femaleNames) : rnd(firstNames);
-    const fatherName = rnd(firstNames);
-    const familyName = rnd(lastNames);
-    const name = `${firstName} ${fatherName} ${familyName}`;
-    const status = Math.random() > 0.2 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
-
     data.push({
       id: `ind_${i+1}`,
-      name: name,
+      name: `${rnd(firstNames)} ${rnd(firstNames)} ${rnd(lastNames)}`,
       nationalId: `2850909${30000 + i}`,
       phone: `012${Math.floor(Math.random() * 100000000)}`,
       address: `منطقة ${region.name}، شارع جانبي`,
       birthDate: '1985-09-09',
-      gender: isFemale ? Gender.FEMALE : Gender.MALE,
+      gender: Gender.MALE,
       branchId: branch.id,
       regionId: region.id,
-      status: status,
+      status: BeneficiaryStatus.ACTIVE,
+      sponsorshipStatus: Math.random() > 0.5 ? SponsorshipStatus.SPONSORED : SponsorshipStatus.NOT_SPONSORED,
       type: BeneficiaryType.INDIVIDUAL,
       categoryIds: [catId],
+      educationLevel: rnd(EDUCATION_LEVELS),
+      schoolName: 'مدرسة النهضة الحديثة',
       createdAt: new Date().toISOString()
     });
   }
@@ -225,7 +185,6 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
 
 const INITIAL_BENEFICIARIES = generateMockBeneficiaries();
 
-// --- Store Context & Provider ---
 interface StoreContextType {
   branches: Branch[];
   regions: Region[];
@@ -269,9 +228,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [logs, setLogsState] = useState<AuditLog[]>(() => {
     const item = localStorage.getItem('audit_logs');
-    return item ? JSON.parse(item) : [
-      { id: 'l1', userId: 'u1', userName: 'أحمد الإدريسي', action: 'تسجيل دخول', entityType: 'النظام', entityId: '-', timestamp: new Date().toISOString() },
-    ];
+    return item ? JSON.parse(item) : [];
   });
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark';

@@ -26,25 +26,52 @@
         }
 
         @media print {
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
             aside, header, nav, button, .print-hidden, .modal-overlay, .no-print { 
                 display: none !important; 
             }
-            body, .min-h-screen, .bg-gray-50 { 
+            body { 
                 background: white !important; 
+                color: black !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                font-size: 10pt;
             }
             main { 
                 margin: 0 !important; 
                 padding: 0 !important; 
                 width: 100% !important;
-                position: absolute;
-                top: 0;
-                right: 0;
+                position: static !important;
             }
-            /* Show elements hidden in screen but visible in print */
             .print-visible {
                 display: block !important;
+            }
+            /* Table Styling for Print */
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-top: 10pt !important;
+            }
+            th, td {
+                border: 1px solid #000 !important;
+                padding: 6pt !important;
+                text-align: right !important;
+                color: black !important;
+            }
+            th {
+                background-color: #f3f4f6 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .bg-emerald-50, .bg-gray-50, .bg-blue-50 {
+                background-color: transparent !important;
+            }
+            /* Reset shadows and rounded corners for print */
+            div, tr, td {
+                box-shadow: none !important;
+                border-radius: 0 !important;
             }
         }
     </style>
