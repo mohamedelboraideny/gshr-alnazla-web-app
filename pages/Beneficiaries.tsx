@@ -228,10 +228,11 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   // Search Results for Family Heads with enhanced UI
   const familyHeadResults = useMemo(() => {
     if (!familySearchQuery.trim()) return [];
+    const query = familySearchQuery.toLowerCase().trim();
     return beneficiaries.filter(b => 
       b.type === BeneficiaryType.FAMILY_HEAD && 
       (isAdmin || b.branchId === user.branchId) &&
-      (b.name.includes(familySearchQuery) || b.nationalId.includes(familySearchQuery))
+      (b.name.toLowerCase().includes(query) || b.nationalId.includes(query))
     ).slice(0, 6);
   }, [familySearchQuery, beneficiaries, user.branchId, isAdmin]);
 
@@ -378,8 +379,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden print:border-none print:shadow-none print:rounded-none">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden print:border-none print:shadow-none print:rounded-none print:overflow-visible">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-right border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 print:bg-gray-200">
               <tr>
@@ -638,32 +639,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
 
                  <hr className="border-gray-100 dark:border-gray-700" />
 
-                 <div className="space-y-4">
-                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">تذييل الصفحة (Footer)</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                       <div>
-                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">توقيع اليمين</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
-                            value={localPrintSettings.footerRight}
-                            onChange={(e) => setLocalPrintSettings({...localPrintSettings, footerRight: e.target.value})}
-                          />
-                       </div>
-                       <div>
-                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">توقيع اليسار</label>
-                          <input 
-                            type="text" 
-                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
-                            value={localPrintSettings.footerLeft}
-                            onChange={(e) => setLocalPrintSettings({...localPrintSettings, footerLeft: e.target.value})}
-                          />
-                       </div>
-                    </div>
-                 </div>
-
-                 <hr className="border-gray-100 dark:border-gray-700" />
-
                  <div>
                     <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">خيارات العرض</h4>
                     <div className="flex flex-wrap gap-4">
@@ -796,6 +771,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                                     onFocus={() => setIsSearchingHeads(true)}
                                   />
                                   
+                                  {familySearchQuery && familyHeadResults.length === 0 && (
+                                     <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] shadow-2xl z-[110] overflow-hidden animate-in slide-in-from-top-2 duration-300">
+                                        <div className="p-6 text-center text-gray-400 text-xs font-bold">
+                                           لا توجد نتائج مطابقة لبحثك
+                                        </div>
+                                     </div>
+                                  )}
+
                                   {familyHeadResults.length > 0 && (
                                      <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] shadow-2xl z-[110] overflow-hidden animate-in slide-in-from-top-2 duration-300">
                                         <div className="p-3 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 px-5 py-2">
