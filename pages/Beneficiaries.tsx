@@ -109,7 +109,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     const individuals = filteredBeneficiaries.filter(b => b.type === BeneficiaryType.INDIVIDUAL);
     
     // 3. Prepare data structure
-    const result = [];
+    const result: (Beneficiary & { children: Beneficiary[] })[] = [];
 
     // Add Heads and their members
     heads.forEach(head => {
