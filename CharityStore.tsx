@@ -102,6 +102,7 @@ export interface Sponsor {
   id: string;
   name: string;
   phone: string;
+  branchId: string; // Linked Branch
   amount: number;
   frequency: 'شهري' | 'سنوي' | 'مرة واحدة';
   status: 'نشط' | 'متوقف';
@@ -206,9 +207,9 @@ const INITIAL_USERS: User[] = [
 ];
 
 const INITIAL_SPONSORS: Sponsor[] = [
-  { id: 'sp1', name: 'الحاج محمد الطيب', phone: '01012345678', amount: 5000, frequency: 'شهري', status: 'نشط', startDate: '2023-01-01', notes: 'فاعل خير معروف', createdAt: new Date().toISOString() },
-  { id: 'sp2', name: 'شركة النور للمقاولات', phone: '01298765432', amount: 20000, frequency: 'سنوي', status: 'نشط', startDate: '2023-03-15', notes: 'زكاة مال', createdAt: new Date().toISOString() },
-  { id: 'sp3', name: 'د. سمير غانم', phone: '01111222333', amount: 1000, frequency: 'شهري', status: 'متوقف', startDate: '2022-05-01', notes: 'كفالة أيتام', createdAt: new Date().toISOString() },
+  { id: 'sp1', name: 'الحاج محمد الطيب', phone: '01012345678', branchId: 'b1', amount: 5000, frequency: 'شهري', status: 'نشط', startDate: '2023-01-01', notes: 'فاعل خير معروف', createdAt: new Date().toISOString() },
+  { id: 'sp2', name: 'شركة النور للمقاولات', phone: '01298765432', branchId: 'b2', amount: 20000, frequency: 'سنوي', status: 'نشط', startDate: '2023-03-15', notes: 'زكاة مال', createdAt: new Date().toISOString() },
+  { id: 'sp3', name: 'د. سمير غانم', phone: '01111222333', branchId: 'b3', amount: 1000, frequency: 'شهري', status: 'متوقف', startDate: '2022-05-01', notes: 'كفالة أيتام', createdAt: new Date().toISOString() },
 ];
 
 const INITIAL_PRINT_SETTINGS: PrintSettings = {

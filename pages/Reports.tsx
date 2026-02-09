@@ -18,9 +18,10 @@ const ProgressBar: React.FC<{ label: string, value: number, max: number, colorCl
 };
 
 const Reports: React.FC<{ user: User }> = ({ user }) => {
-  const { beneficiaries, branches, categories } = useStore();
+  const { beneficiaries, branches, categories, printSettings } = useStore();
   
   const isAdmin = user.role === Role.ADMIN;
+  const branchName = branches.find(b => b.id === user.branchId)?.name || "الإدارة العامة";
   
   const visibleBeneficiaries = useMemo(() => {
     return isAdmin ? beneficiaries : beneficiaries.filter(b => b.branchId === user.branchId);
@@ -83,6 +84,23 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
 
   return (
     <div className="space-y-8 print-area">
+      
+      {/* --- Optimized Compact Print Header (No Logo) --- */}
+      <div className="hidden print:flex flex-row justify-between items-center mb-1 border-b border-black pb-1">
+        <div className="text-right">
+           <h2 className="text-sm font-black">{printSettings.title}</h2>
+           <p className="text-[10px] font-bold">{printSettings.subtitle}</p>
+        </div>
+        <div className="text-center">
+           <h3 className="text-base font-black underline decoration-1 underline-offset-2">التقرير الإحصائي</h3>
+        </div>
+        <div className="text-left font-bold text-[9px] leading-tight">
+           {printSettings.showBranch && <div>فرع: {branchName}</div>}
+           {printSettings.showDate && <div>التاريخ: {new Date().toLocaleDateString('ar-EG')}</div>}
+           {printSettings.showUser && <div>المستخدم: {user.name}</div>}
+        </div>
+      </div>
+
       <div className="flex justify-between items-center print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">التقارير الإحصائية</h1>
@@ -97,19 +115,6 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
         </button>
       </div>
 
-      <div className="hidden print:block border-b-2 border-emerald-600 pb-6 mb-8">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl font-bold text-emerald-800">تقرير بيانات النظام</h1>
-            <p className="text-sm text-gray-500 mt-1">تاريخ الاستخراج: {formatDate(new Date())}</p>
-          </div>
-          <div className="text-left">
-            <p className="font-bold text-gray-800">الجمعية الشرعية - فرع النزلة</p>
-            <p className="text-xs text-gray-400">{isAdmin ? 'الإدارة العامة' : 'تقرير الفرع الخاص'}</p>
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <ReportCard icon={<Users className="text-blue-600 dark:text-blue-400" />} label="إجمالي المستفيدين" value={reportData.total} color="border-blue-200 dark:border-blue-900/50" />
         <ReportCard icon={<TrendingUp className="text-emerald-600 dark:text-emerald-400" />} label="حالات نشطة" value={reportData.status.active} color="border-emerald-200 dark:border-emerald-900/50" />
@@ -117,34 +122,34 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
         <ReportCard icon={<Tag className="text-orange-600 dark:text-orange-400" />} label="أفراد تابعين" value={reportData.types.familyMember} color="border-orange-200 dark:border-orange-900/50" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
-          <div className="flex items-center gap-3 border-b border-gray-50 dark:border-gray-700 pb-4">
-            <BarChart3 className="text-emerald-600 dark:text-emerald-500" size={24} />
-            <h3 className="font-bold text-lg dark:text-white">توزيع الحالات حسب التصنيف</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:block print:space-y-4">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 print:border print:border-black print:rounded-none print:shadow-none print:p-4">
+          <div className="flex items-center gap-3 border-b border-gray-50 dark:border-gray-700 pb-4 print:border-black">
+            <BarChart3 className="text-emerald-600 dark:text-emerald-500 print:text-black" size={24} />
+            <h3 className="font-bold text-lg dark:text-white print:text-black">توزيع الحالات حسب التصنيف</h3>
           </div>
           <div className="space-y-4">
             {Object.entries(reportData.categories).map(([name, count]) => (
-              <ProgressBar key={name} label={name} value={count as number} max={reportData.total} colorClass="bg-emerald-500" />
+              <ProgressBar key={name} label={name} value={count as number} max={reportData.total} colorClass="bg-emerald-500 print:bg-black" />
             ))}
             {Object.keys(reportData.categories).length === 0 && <p className="text-center text-gray-400 py-4">لا توجد بيانات كافية</p>}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
-          <div className="flex items-center gap-3 border-b border-gray-50 dark:border-gray-700 pb-4">
-            <PieChart className="text-indigo-600 dark:text-indigo-500" size={24} />
-            <h3 className="font-bold text-lg dark:text-white">الفئات العمرية</h3>
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-6 print:border print:border-black print:rounded-none print:shadow-none print:p-4">
+          <div className="flex items-center gap-3 border-b border-gray-50 dark:border-gray-700 pb-4 print:border-black">
+            <PieChart className="text-indigo-600 dark:text-indigo-500 print:text-black" size={24} />
+            <h3 className="font-bold text-lg dark:text-white print:text-black">الفئات العمرية</h3>
           </div>
           <div className="space-y-5">
-            <ProgressBar label="أطفال (أقل من 18)" value={reportData.ageGroups.child} max={reportData.total} colorClass="bg-blue-500" />
-            <ProgressBar label="بالغين (18 - 60)" value={reportData.ageGroups.adult} max={reportData.total} colorClass="bg-indigo-500" />
-            <ProgressBar label="كبار السن (أكثر من 60)" value={reportData.ageGroups.elderly} max={reportData.total} colorClass="bg-purple-500" />
+            <ProgressBar label="أطفال (أقل من 18)" value={reportData.ageGroups.child} max={reportData.total} colorClass="bg-blue-500 print:bg-black" />
+            <ProgressBar label="بالغين (18 - 60)" value={reportData.ageGroups.adult} max={reportData.total} colorClass="bg-indigo-500 print:bg-black" />
+            <ProgressBar label="كبار السن (أكثر من 60)" value={reportData.ageGroups.elderly} max={reportData.total} colorClass="bg-purple-500 print:bg-black" />
           </div>
-          <div className="pt-4 border-t border-gray-50 dark:border-gray-700">
-             <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+          <div className="pt-4 border-t border-gray-50 dark:border-gray-700 print:border-black">
+             <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 print:text-black">
                 <span>إجمالي المسجلين</span>
-                <span className="font-bold text-gray-800 dark:text-gray-200">{reportData.total} مستفيد</span>
+                <span className="font-bold text-gray-800 dark:text-gray-200 print:text-black">{reportData.total} مستفيد</span>
              </div>
           </div>
         </div>
@@ -154,13 +159,13 @@ const Reports: React.FC<{ user: User }> = ({ user }) => {
 };
 
 const ReportCard = ({ icon, label, value, color }: { icon: React.ReactNode, label: string, value: number, color: string }) => (
-  <div className={`bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border ${color} dark:border-gray-700 flex items-center gap-5 transition hover:shadow-md`}>
-    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl shrink-0">
+  <div className={`bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border ${color} dark:border-gray-700 flex items-center gap-5 transition hover:shadow-md print:border print:border-black print:rounded-none print:shadow-none print:p-2`}>
+    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-2xl shrink-0 print:hidden">
       {icon}
     </div>
     <div>
-      <p className="text-[10px] text-gray-400 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-black text-gray-800 dark:text-white leading-none">{value}</p>
+      <p className="text-[10px] text-gray-400 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider print:text-black">{label}</p>
+      <p className="text-2xl font-black text-gray-800 dark:text-white leading-none print:text-black">{value}</p>
     </div>
   </div>
 );

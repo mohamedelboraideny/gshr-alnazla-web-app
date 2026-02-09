@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle, Filter
+  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle, Filter, ArrowUpCircle
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -37,6 +37,13 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const [familySearchQuery, setFamilySearchQuery] = useState('');
   const [isLinkingFamily, setIsLinkingFamily] = useState(false);
   const [isSearchingHeads, setIsSearchingHeads] = useState(false);
+
+  // Promotion Modal State
+  const [promotionState, setPromotionState] = useState<{ isOpen: boolean; count: number; affectedIds: string[] }>({
+    isOpen: false,
+    count: 0,
+    affectedIds: []
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -75,6 +82,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id?: string }>({ isOpen: false });
 
   const isAdmin = user.role === Role.ADMIN;
+  const isManager = user.role === Role.MANAGER;
   
   const filteredBeneficiaries = useMemo(() => {
     return beneficiaries.filter(b => {
@@ -247,7 +255,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
 
   // Dynamic Print Title Generation
   const printTitle = useMemo(() => {
-    let title = "تقرير سجل المستفيدين";
+    let title = "سجل المستفيدين";
     if (filterCategoryIds.length > 0) {
       const catNames = filterCategoryIds.map(id => categories.find(c => c.id === id)?.name).join(' - ');
       title += ` (${catNames})`;
@@ -271,33 +279,65 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     return selectedCats.some(c => relevantKeywords.some(kw => c.name.includes(kw)));
   }, [formData.categoryIds, categories]);
 
+  // --- Promotion Logic ---
+  const handlePreparePromotion = () => {
+    const affectedIds: string[] = [];
+    
+    // Determine which beneficiaries are visible to this user
+    const targets = isAdmin ? beneficiaries : beneficiaries.filter(b => b.branchId === user.branchId);
+
+    targets.forEach(b => {
+      if (b.educationLevel && b.educationLevel !== 'غير ملتحق' && b.educationLevel !== 'خريج') {
+        const currentIndex = EDUCATION_LEVELS.indexOf(b.educationLevel);
+        if (currentIndex !== -1 && currentIndex < EDUCATION_LEVELS.length - 1) {
+          affectedIds.push(b.id);
+        }
+      }
+    });
+
+    if (affectedIds.length === 0) {
+      alert("لا يوجد طلاب مؤهلين للترقية في الوقت الحالي.");
+      return;
+    }
+
+    setPromotionState({
+      isOpen: true,
+      count: affectedIds.length,
+      affectedIds: affectedIds
+    });
+  };
+
+  const executePromotion = () => {
+    const updatedBeneficiaries = beneficiaries.map(b => {
+      if (promotionState.affectedIds.includes(b.id)) {
+        const currentIndex = EDUCATION_LEVELS.indexOf(b.educationLevel || '');
+        const nextLevel = EDUCATION_LEVELS[currentIndex + 1];
+        return { ...b, educationLevel: nextLevel };
+      }
+      return b;
+    });
+
+    setBeneficiaries(updatedBeneficiaries);
+    addLog(user, 'ترحيل عام دراسي', 'مجموعة مستفيدين', `عدد: ${promotionState.count}`);
+    setPromotionState({ isOpen: false, count: 0, affectedIds: [] });
+  };
+
   return (
     <div className="space-y-6">
       
-      {/* --- Specialized Dynamic Print Header --- */}
-      <div className="hidden print:block mb-4 border-b-2 border-black pb-4">
-        <div className="flex justify-between items-start">
-           <div className="text-right">
-              <h2 className="text-2xl font-black mb-1">{printSettings.title}</h2>
-              <p className="text-sm font-bold">{printSettings.subtitle}</p>
-              {printSettings.showBranch && <p className="text-sm font-bold">فرع: {branchName}</p>}
-           </div>
-           <div className="text-center">
-              <div className="w-16 h-16 border-2 border-black rounded-full flex items-center justify-center mx-auto mb-2 font-black text-xl">
-                 ش
-              </div>
-           </div>
-           <div className="text-left font-bold text-xs space-y-1">
-              {printSettings.showDate && (
-                <div className="flex justify-end gap-2"><span>التاريخ:</span> <span>{new Date().toLocaleDateString('ar-EG')}</span></div>
-              )}
-              {printSettings.showUser && (
-                <div className="flex justify-end gap-2"><span>المستخدم:</span> <span>{user.name}</span></div>
-              )}
-           </div>
+      {/* --- Specialized Dynamic Print Header (Compacted) --- */}
+      <div className="hidden print:flex flex-row justify-between items-center mb-1 border-b border-black pb-1">
+        <div className="text-right">
+           <h2 className="text-sm font-black">{printSettings.title}</h2>
+           <p className="text-[10px] font-bold">{printSettings.subtitle}</p>
         </div>
-        <div className="mt-4 text-center">
-           <h3 className="text-xl font-black underline decoration-2 underline-offset-4">{printTitle}</h3>
+        <div className="text-center">
+           <h3 className="text-base font-black underline decoration-1 underline-offset-2">{printTitle}</h3>
+        </div>
+        <div className="text-left font-bold text-[9px] leading-tight">
+           {printSettings.showBranch && <div>فرع: {branchName}</div>}
+           {printSettings.showDate && <div>التاريخ: {new Date().toLocaleDateString('ar-EG')}</div>}
+           {printSettings.showUser && <div>المستخدم: {user.name}</div>}
         </div>
       </div>
 
@@ -307,22 +347,27 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm font-bold">إدارة قاعدة البيانات وحالة الكفالة والربط الأسري</p>
         </div>
         
-        <div className="flex flex-wrap gap-3 w-full xl:w-auto">
-          <button 
-            onClick={() => setIsPrintSettingsOpen(true)}
-            className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 font-bold transition shadow-sm"
-          >
-             <Settings size={18} />
-             <span className="text-sm">إعدادات الطباعة</span>
-          </button>
+        <div className="flex flex-wrap gap-3 w-full xl:w-auto items-center">
+          
+          {/* Group 1: Utilities & Output (Least Frequent) */}
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setIsPrintSettingsOpen(true)}
+              className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-300 px-3 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 font-bold transition shadow-sm"
+              title="إعدادات الطباعة"
+            >
+               <Settings size={20} />
+            </button>
+            <button 
+              onClick={() => window.print()}
+              className="flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-200 px-4 py-3 rounded-2xl hover:bg-gray-200 font-bold transition"
+            >
+              <Printer size={18} />
+              <span className="text-sm hidden sm:inline">طباعة</span>
+            </button>
+          </div>
 
-          <button 
-            onClick={() => window.print()}
-            className="flex-1 xl:flex-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-gray-200 font-bold transition"
-          >
-            <Printer size={18} /> <span className="text-sm">طباعة الجدول</span>
-          </button>
-
+          {/* Group 2: View Controls (Medium Frequency) */}
           <div className="bg-white dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 flex shadow-sm">
             <button onClick={() => setIsTreeView(true)} className={`px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-bold transition-all ${isTreeView ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-500'}`}>
               <Network size={18} /> شجري
@@ -332,16 +377,31 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
             </button>
           </div>
 
-          <button onClick={() => handleOpenModal(BeneficiaryType.INDIVIDUAL)} className="flex-1 xl:flex-none bg-emerald-600 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 shadow-lg font-bold transition">
-            <UserIcon size={18} /> <span className="text-sm">إضافة فرد</span>
-          </button>
+          {/* Group 3: Admin Actions (Specific Tasks) */}
+          {(isAdmin || isManager) && (
+            <button 
+              onClick={handlePreparePromotion}
+              className="flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-4 py-3 rounded-2xl border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-bold transition shadow-sm"
+              title="نقل الطلاب للمرحلة الدراسية التالية"
+            >
+               <ArrowUpCircle size={18} />
+               <span className="text-sm">ترحيل العام الدراسي</span>
+            </button>
+          )}
+
+          {/* Group 4: Primary Actions (Most Frequent) - Placed last for visual emphasis in reading flow */}
           <button onClick={() => handleOpenModal(BeneficiaryType.FAMILY_HEAD)} className="flex-1 xl:flex-none bg-indigo-600 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg font-bold transition">
             <UsersIcon size={18} /> <span className="text-sm">إضافة أسرة</span>
           </button>
+          <button onClick={() => handleOpenModal(BeneficiaryType.INDIVIDUAL)} className="flex-1 xl:flex-none bg-emerald-600 text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-emerald-700 shadow-lg font-bold transition">
+            <UserIcon size={18} /> <span className="text-sm">إضافة فرد</span>
+          </button>
+
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center z-20 relative print-hidden">
+        {/* Search & Filters */}
         <div className="relative flex-1 min-w-[280px]">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
@@ -351,7 +411,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           />
         </div>
         
-        {/* Results Counter Badge */}
         <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
            <Filter size={16} />
            <span className="text-xs font-black">النتائج: {filteredBeneficiaries.length}</span>
@@ -655,23 +714,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
             </tbody>
           </table>
         </div>
-        
-        {/* Dynamic Print Signatures and Footer */}
-        <div className="hidden print:flex justify-between items-end mt-8 page-break-inside-avoid print-footer">
-           <div className="w-1/3 text-center">
-              <p className="font-bold text-xs">{printSettings.footerRight}</p>
-              <div className="h-12 border-b border-dotted border-gray-400 w-3/4 mx-auto mt-2"></div>
-           </div>
-           <div className="w-1/3 text-center">
-              <p className="text-[10px] text-gray-500">تمت الطباعة بواسطة نظام الجمعية الإلكتروني</p>
-              {/* This span will be targeted by CSS for page numbers */}
-              <span className="page-number text-[10px] font-bold"></span>
-           </div>
-           <div className="w-1/3 text-center">
-              <p className="font-bold text-xs">{printSettings.footerLeft}</p>
-              <div className="h-12 border-b border-dotted border-gray-400 w-3/4 mx-auto mt-2"></div>
-           </div>
-        </div>
       </div>
 
       {/* --- Print Settings Modal --- */}
@@ -752,322 +794,15 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
       )}
 
-      {/* Add/Edit Modal (Existing code unchanged) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
-            <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/30">
-              <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
-                    {modalType === BeneficiaryType.INDIVIDUAL ? <UserIcon size={24} /> : <UsersIcon size={24} />}
-                 </div>
-                 <div>
-                    <h3 className="text-xl font-black text-gray-800 dark:text-white">
-                       {editId ? 'تعديل بيانات' : 'إضافة'} {modalType === BeneficiaryType.INDIVIDUAL ? 'مستفيد' : 'رب أسرة'}
-                    </h3>
-                    <p className="text-xs text-gray-500 font-bold">يرجى استيفاء كافة البيانات المطلوبة بدقة</p>
-                 </div>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition text-gray-400"><X size={24} /></button>
-            </div>
-
-            <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* --- Linking to Family Section (Conditional) --- */}
-                {modalType !== BeneficiaryType.FAMILY_HEAD && (
-                   <div className="md:col-span-2 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800">
-                      <div className="flex items-center justify-between mb-4">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center">
-                               <UsersIcon size={20} />
-                            </div>
-                            <div>
-                               <h4 className="text-sm font-black text-gray-800 dark:text-white">الارتباط بأسرة</h4>
-                               <p className="text-[10px] text-gray-500 font-bold">هل هذا الفرد تابع لأسرة مسجلة؟</p>
-                            </div>
-                         </div>
-                         <button 
-                           type="button" 
-                           onClick={() => {
-                             setIsLinkingFamily(!isLinkingFamily);
-                             if (!isLinkingFamily) setFormData({...formData, familyId: '', kinshipRelation: ''});
-                           }}
-                           className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isLinkingFamily ? 'bg-indigo-600 text-white shadow-md' : 'bg-white dark:bg-gray-800 text-indigo-600 border border-indigo-100 dark:border-indigo-900/50'}`}
-                         >
-                            {isLinkingFamily ? 'مرتبط بأسرة' : 'فرد مستقل'}
-                         </button>
-                      </div>
-
-                      {isLinkingFamily && (
-                         <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                            {selectedFamilyHead ? (
-                               <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-2xl border border-indigo-200 dark:border-indigo-900 shadow-sm transition-all animate-in zoom-in-95 duration-200">
-                                  <div className="flex items-center gap-4">
-                                     <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl flex items-center justify-center">
-                                        <UserCheck size={24} />
-                                     </div>
-                                     <div>
-                                        <p className="text-sm font-black text-gray-800 dark:text-white">{selectedFamilyHead.name}</p>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                           <span className="flex items-center gap-1 text-[10px] text-gray-400 font-bold">
-                                              <Fingerprint size={10} /> {selectedFamilyHead.nationalId}
-                                           </span>
-                                           <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                           <span className="flex items-center gap-1 text-[10px] text-indigo-500 font-bold uppercase tracking-wider">
-                                              {selectedFamilyHead.type}
-                                           </span>
-                                        </div>
-                                     </div>
-                                  </div>
-                                  <button 
-                                    type="button" 
-                                    onClick={() => setFormData({...formData, familyId: ''})}
-                                    className="p-2.5 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition active:scale-90"
-                                    title="إزالة الربط"
-                                  >
-                                     <Trash2 size={20} />
-                                  </button>
-                               </div>
-                            ) : (
-                               <div className="relative group">
-                                  <div className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${familySearchQuery ? 'text-indigo-500' : 'text-gray-400'}`}>
-                                     <SearchCode size={20} />
-                                  </div>
-                                  <input 
-                                    type="text" 
-                                    placeholder="ابحث بالاسم أو الرقم القومي لرب الأسرة..." 
-                                    className="w-full pr-12 pl-4 py-4 bg-white dark:bg-gray-800 border-2 border-transparent focus:border-indigo-500/30 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/10 text-sm font-bold outline-none transition-all" 
-                                    value={familySearchQuery}
-                                    onChange={(e) => setFamilySearchQuery(e.target.value)}
-                                    onFocus={() => setIsSearchingHeads(true)}
-                                  />
-                                  
-                                  {familySearchQuery && familyHeadResults.length === 0 && (
-                                     <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] shadow-2xl z-[110] overflow-hidden animate-in slide-in-from-top-2 duration-300">
-                                        <div className="p-6 text-center text-gray-400 text-xs font-bold">
-                                           لا توجد نتائج مطابقة لبحثك
-                                        </div>
-                                     </div>
-                                  )}
-
-                                  {familyHeadResults.length > 0 && (
-                                     <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] shadow-2xl z-[110] overflow-hidden animate-in slide-in-from-top-2 duration-300">
-                                        <div className="p-3 bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 px-5 py-2">
-                                           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">نتائج البحث المقترحة</span>
-                                        </div>
-                                        <div className="max-h-64 overflow-y-auto custom-scrollbar">
-                                           {familyHeadResults.map(head => (
-                                              <div 
-                                                key={head.id} 
-                                                onClick={() => {
-                                                  setFormData({
-                                                     ...formData, 
-                                                     familyId: head.id,
-                                                     regionId: head.regionId || formData.regionId, 
-                                                     address: head.address || formData.address 
-                                                  });
-                                                  setFamilySearchQuery('');
-                                                }}
-                                                className="p-4 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer border-b last:border-b-0 border-gray-50 dark:border-gray-800 flex justify-between items-center group/item transition-colors"
-                                              >
-                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover/item:bg-indigo-100 group-hover/item:text-indigo-600 rounded-xl flex items-center justify-center transition-colors">
-                                                       <UserIcon size={18} />
-                                                    </div>
-                                                    <div>
-                                                       <p className="text-sm font-black text-gray-800 dark:text-white group-hover/item:text-indigo-700 dark:group-hover/item:text-indigo-400 transition-colors">{head.name}</p>
-                                                       <div className="flex items-center gap-2 mt-0.5">
-                                                          <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
-                                                             <Fingerprint size={10} /> {head.nationalId}
-                                                          </span>
-                                                       </div>
-                                                    </div>
-                                                 </div>
-                                                 <div className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-300 group-hover/item:bg-indigo-500 group-hover/item:text-white group-hover/item:border-indigo-500 transition-all">
-                                                    <Check size={14} />
-                                                 </div>
-                                              </div>
-                                           ))}
-                                        </div>
-                                     </div>
-                                  )}
-                               </div>
-                            )}
-
-                            {/* Kinship Relation Selector */}
-                            <div className="animate-in fade-in duration-300">
-                               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">صلة القرابة برب الأسرة</label>
-                               <div className="relative">
-                                  <Baby size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                  <select 
-                                    className="w-full pr-12 pl-4 py-3.5 bg-white dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm font-bold shadow-sm"
-                                    value={formData.kinshipRelation}
-                                    onChange={e => setFormData({...formData, kinshipRelation: e.target.value})}
-                                  >
-                                    <option value="">اختر صلة القرابة</option>
-                                    {KINSHIP_RELATIONS.map(rel => (
-                                       <option key={rel} value={rel}>{rel}</option>
-                                    ))}
-                                  </select>
-                               </div>
-                               {errors.kinshipRelation && <p className="text-[10px] text-red-500 mt-1 mr-1 font-bold">{errors.kinshipRelation}</p>}
-                            </div>
-                         </div>
-                      )}
-                   </div>
-                )}
-
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">الاسم الرباعي الكامل للمستفيد</label>
-                  <input type="text" className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold shadow-inner" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                  {errors.name && <p className="text-[10px] text-red-500 mt-1 mr-1 font-bold">{errors.name}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">الرقم القومي (14 رقم)</label>
-                  <input type="text" maxLength={14} className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold shadow-inner" value={formData.nationalId} onChange={e => setFormData({...formData, nationalId: e.target.value})} />
-                  {errors.nationalId && <p className="text-[10px] text-red-500 mt-1 mr-1 font-bold">{errors.nationalId}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">رقم الهاتف للتواصل</label>
-                  <input type="text" className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold shadow-inner" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                </div>
-
-                <div>
-                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">حالة الكفالة الحالية</label>
-                   <select className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold shadow-sm" value={formData.sponsorshipStatus} onChange={e => setFormData({...formData, sponsorshipStatus: e.target.value as SponsorshipStatus})}>
-                      <option value={SponsorshipStatus.NOT_SPONSORED}>{SponsorshipStatus.NOT_SPONSORED}</option>
-                      <option value={SponsorshipStatus.SPONSORED}>{SponsorshipStatus.SPONSORED}</option>
-                   </select>
-                </div>
-
-                <div>
-                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">المنطقة الجغرافية</label>
-                   <select className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold shadow-sm" value={formData.regionId} onChange={e => setFormData({...formData, regionId: e.target.value})}>
-                      <option value="">اختر المنطقة</option>
-                      {branchRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                   </select>
-                </div>
-
-                <div className="md:col-span-2 p-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-800/50 space-y-6">
-                   <h4 className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-2 mb-4">
-                      <GraduationCap size={16} /> المسار التعليمي (اختياري)
-                   </h4>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">المرحلة الدراسية</label>
-                        <select 
-                          className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 dark:text-white text-sm font-bold shadow-sm"
-                          value={formData.educationLevel}
-                          onChange={e => setFormData({...formData, educationLevel: e.target.value})}
-                        >
-                          {EDUCATION_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">اسم المدرسة / الجامعة</label>
-                        <input 
-                          type="text"
-                          className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 dark:text-white text-sm font-bold shadow-sm"
-                          value={formData.schoolName}
-                          onChange={e => setFormData({...formData, schoolName: e.target.value})}
-                          placeholder="مثال: مدرسة النهضة الابتدائية"
-                        />
-                      </div>
-                   </div>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">تصنيف الحالة (يمكن اختيار أكثر من واحد)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map(c => {
-                      const isSelected = formData.categoryIds.includes(c.id);
-                      return (
-                        <button 
-                          key={c.id} type="button" 
-                          onClick={() => {
-                            const newIds = isSelected ? formData.categoryIds.filter(id => id !== c.id) : [...formData.categoryIds, c.id];
-                            setFormData({...formData, categoryIds: newIds});
-                          }}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' : 'bg-gray-50 dark:bg-gray-900 border-transparent text-gray-500 hover:border-gray-200'}`}
-                        >
-                          {c.name}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Health Conditions Section - Highlighted if relevant category selected */}
-                <div className={`md:col-span-2 p-6 rounded-3xl border transition-all duration-300 space-y-4 ${
-                  isHealthConditionRelevant 
-                    ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 shadow-md ring-2 ring-rose-500/20' 
-                    : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'
-                }`}>
-                   <div className="flex items-center justify-between">
-                      <h4 className={`text-xs font-black flex items-center gap-2 ${isHealthConditionRelevant ? 'text-rose-600 dark:text-rose-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                          <Activity size={16} /> الحالة الصحية وتفاصيل الإعاقة (إن وجد)
-                      </h4>
-                      {isHealthConditionRelevant && (
-                        <span className="text-[10px] bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-300 px-2 py-1 rounded-full font-bold flex items-center gap-1 animate-pulse">
-                           <AlertCircle size={10} /> يوصى بالتحديد
-                        </span>
-                      )}
-                   </div>
-                   
-                   <div className="flex flex-wrap gap-2">
-                      {healthConditions.map(condition => {
-                         const isSelected = formData.healthConditions.includes(condition.name);
-                         return (
-                            <button
-                               key={condition.id} type="button"
-                               onClick={() => {
-                                  const newConditions = isSelected 
-                                     ? formData.healthConditions.filter(c => c !== condition.name)
-                                     : [...formData.healthConditions, condition.name];
-                                  setFormData({...formData, healthConditions: newConditions});
-                               }}
-                               className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${isSelected ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 hover:border-rose-200'}`}
-                            >
-                               {condition.name}
-                            </button>
-                         )
-                      })}
-                      {healthConditions.length === 0 && (
-                        <p className="text-xs text-gray-400 italic w-full text-center">لا توجد أنواع أمراض مضافة في النظام.</p>
-                      )}
-                   </div>
-                </div>
-
-                <div>
-                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">تاريخ الميلاد</label>
-                   <input type="date" className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold shadow-inner" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
-                </div>
-
-                <div>
-                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">الجنس</label>
-                   <select className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold shadow-sm" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as Gender})}>
-                      <option value={Gender.MALE}>{Gender.MALE}</option>
-                      <option value={Gender.FEMALE}>{Gender.FEMALE}</option>
-                   </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">العنوان بالتفصيل</label>
-                  <textarea rows={2} className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold resize-none shadow-inner" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="رقم المنزل، الشارع، علامة مميزة..."></textarea>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex gap-4">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-sm font-black text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:bg-gray-50 transition active:scale-95">إلغاء الأمر</button>
-              <button onClick={handleSave} className="flex-1 py-4 text-sm font-black text-white bg-emerald-600 rounded-2xl hover:bg-emerald-700 shadow-xl shadow-emerald-600/20 transition active:scale-95">حفظ البيانات</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal 
+        isOpen={promotionState.isOpen}
+        onClose={() => setPromotionState({ isOpen: false, count: 0, affectedIds: [] })}
+        onConfirm={executePromotion}
+        title="تأكيد ترحيل العام الدراسي"
+        message={`هل أنت متأكد من نقل ${promotionState.count} طالب إلى السنة الدراسية التالية؟ سيتم تحديث بيانات المرحلة الدراسية لجميع الطلاب المؤهلين.`}
+        confirmText="تأكيد الترحيل"
+        variant="primary"
+      />
 
       <ConfirmModal 
         isOpen={confirmModal.isOpen}
