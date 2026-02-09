@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, Users, Building2, UserPlus, History, LogOut, Map, BarChart3, Sun, Moon, Tag, RotateCcw, Menu, X
+  LayoutDashboard, Users, Building2, UserPlus, History, LogOut, Map, BarChart3, Sun, Moon, Tag, RotateCcw, Menu, X,
+  Baby, HeartPulse, HandHelping, Sparkles
 } from 'lucide-react';
 import { User, Role, useStore } from '../CharityStore';
 
@@ -15,7 +16,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const { isDarkMode, toggleDarkMode, resetToSeedData, branches } = useStore();
   const location = useLocation();
   
-  // Initialize state based on screen width (Mobile: Closed by default, Desktop: Open)
+  // Sidebar state initialization based on viewport
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(() => window.innerWidth >= 1024);
   
   const isAdmin = user.role === Role.ADMIN;
@@ -28,7 +29,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     }
   }, [location]);
 
-  // تعريف القوائم بناءً على الصلاحيات الصارمة
   const navItems = [
     { to: '/', icon: <LayoutDashboard size={22} />, label: 'لوحة التحكم', allowed: true },
     { to: '/beneficiaries', icon: <Users size={22} />, label: 'سجل المستفيدين', allowed: true },
@@ -41,6 +41,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     { to: '/statuses', icon: <Tag size={22} />, label: 'تصنيفات الحالات', allowed: isAdmin },
     
     { to: '/logs', icon: <History size={22} />, label: 'سجل العمليات', allowed: isAdmin || isManager },
+  ];
+
+  // Quick Filters configuration
+  const quickFilters = [
+    { to: '/beneficiaries?category=cat2', icon: <Baby size={18} />, label: 'أيتام', color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' },
+    { to: '/beneficiaries?category=cat1', icon: <HandHelping size={18} />, label: 'فقراء', color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' },
+    { to: '/beneficiaries?category=cat7', icon: <HeartPulse size={18} />, label: 'مرضى', color: 'text-rose-500 bg-rose-50 dark:bg-rose-900/20' },
   ];
 
   const branchName = branches.find(b => b.id === user.branchId)?.name || user.branchId;
@@ -62,7 +69,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0`}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
+          {/* Sidebar Header */}
           <div className="p-8 flex items-center gap-4 border-b border-gray-50 dark:border-gray-800/50">
             <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-emerald-500/30 shrink-0">
               ش
@@ -77,7 +84,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             </button>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation Links */}
           <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 custom-scrollbar">
             {navItems.filter(item => item.allowed).map((item) => (
               <NavLink
@@ -94,9 +101,37 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 <span className="relative z-10 text-sm">{item.label}</span>
               </NavLink>
             ))}
+
+            {/* Quick Access Section */}
+            <div className="pt-6 pb-2 px-4">
+               <div className="flex items-center gap-2 mb-4">
+                  <Sparkles size={14} className="text-amber-500" />
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">وصول سريع</span>
+               </div>
+               <div className="space-y-1.5">
+                  {quickFilters.map((filter, idx) => (
+                    <NavLink
+                      key={idx}
+                      to={filter.to}
+                      className={({ isActive }) => 
+                        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 border ${
+                          isActive 
+                            ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm scale-[1.02]' 
+                            : 'border-transparent hover:bg-white dark:hover:bg-gray-800/50 hover:shadow-sm'
+                        }`
+                      }
+                    >
+                      <div className={`p-1.5 rounded-lg ${filter.color}`}>
+                        {filter.icon}
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{filter.label}</span>
+                    </NavLink>
+                  ))}
+               </div>
+            </div>
           </nav>
 
-          {/* Footer Actions */}
+          {/* Sidebar Footer */}
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
             {isAdmin && (
                <button
@@ -118,7 +153,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full lg:mr-72`}>
         
         {/* Top Header */}
