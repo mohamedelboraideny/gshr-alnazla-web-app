@@ -27,51 +27,79 @@
 
         @media print {
             @page {
-                size: A4;
-                margin: 1cm;
+                size: A4 landscape; /* Landscape allows more columns */
+                margin: 10mm;
             }
-            aside, header, nav, button, .print-hidden, .modal-overlay, .no-print { 
+            
+            /* Reset layout for print to avoid blank pages */
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+                background: white !important;
+                color: black !important;
+                font-size: 11pt;
+            }
+
+            /* Hide UI elements */
+            aside, header, nav, button, .print-hidden, .modal-overlay, .no-print, .shadow-sm, .shadow-2xl { 
                 display: none !important; 
             }
-            body { 
-                background: white !important; 
-                color: black !important;
+
+            /* Ensure main content takes full width */
+            #root, main, .print-area {
+                width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                font-size: 10pt;
-            }
-            main { 
-                margin: 0 !important; 
-                padding: 0 !important; 
-                width: 100% !important;
+                display: block !important;
                 position: static !important;
             }
+
             .print-visible {
                 display: block !important;
             }
-            /* Table Styling for Print */
+
+            /* Notebook Style Table Borders */
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                margin-top: 10pt !important;
+                border: 2px solid #000 !important;
+                margin-top: 10px !important;
+                page-break-inside: auto;
             }
+            
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
             th, td {
                 border: 1px solid #000 !important;
-                padding: 6pt !important;
+                padding: 4px 8px !important;
                 text-align: right !important;
                 color: black !important;
             }
+
             th {
-                background-color: #f3f4f6 !important;
+                background-color: #e5e7eb !important; /* Light gray for header */
+                font-weight: 900 !important;
+                border-bottom: 2px solid #000 !important;
                 -webkit-print-color-adjust: exact;
             }
-            .bg-emerald-50, .bg-gray-50, .bg-blue-50 {
+
+            /* Clear backgrounds */
+            .bg-emerald-50, .bg-gray-50, .bg-blue-50, .bg-white, .dark\:bg-gray-800, .dark\:bg-gray-900 {
                 background-color: transparent !important;
             }
-            /* Reset shadows and rounded corners for print */
-            div, tr, td {
+            
+            /* Remove rounded corners and shadows */
+            div, tr, td, th {
                 box-shadow: none !important;
                 border-radius: 0 !important;
+            }
+            
+            /* Typography adjustments */
+            p, span, div {
+                color: black !important;
             }
         }
     </style>

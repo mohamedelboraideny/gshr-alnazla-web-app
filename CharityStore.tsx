@@ -112,6 +112,16 @@ export interface AuditLog {
   timestamp: string;
 }
 
+export interface PrintSettings {
+  title: string;
+  subtitle: string;
+  footerLeft: string;
+  footerRight: string;
+  showDate: boolean;
+  showUser: boolean;
+  showBranch: boolean;
+}
+
 // --- Seed Data Generation ---
 const INITIAL_CATEGORIES: BeneficiaryCategory[] = [
   { id: 'cat1', name: 'فقراء' },
@@ -147,6 +157,16 @@ const INITIAL_USERS: User[] = [
   { id: 'u2', name: 'سناء يوسف', username: 'manager', password: '123', role: Role.MANAGER, branchId: 'b2', isFirstLogin: false },
   { id: 'u3', name: 'ياسر كمال', username: 'staff', password: '123', role: Role.STAFF, branchId: 'b3', isFirstLogin: false },
 ];
+
+const INITIAL_PRINT_SETTINGS: PrintSettings = {
+  title: 'الجمعية الشرعية الرئيسية',
+  subtitle: 'لتعاون العاملين بالكتاب والسنة المحمدية',
+  footerLeft: 'توقيع مدير الفرع',
+  footerRight: 'توقيع الموظف المختص',
+  showDate: true,
+  showUser: true,
+  showBranch: true
+};
 
 const generateMockBeneficiaries = (): Beneficiary[] => {
   const data: Beneficiary[] = [];
@@ -193,6 +213,7 @@ interface StoreContextType {
   categories: BeneficiaryCategory[];
   logs: AuditLog[];
   isDarkMode: boolean;
+  printSettings: PrintSettings;
   setBranches: (data: Branch[]) => void;
   setRegions: (data: Region[]) => void;
   saveUsers: (data: User[]) => void;
@@ -201,6 +222,7 @@ interface StoreContextType {
   addLog: (user: User, action: string, entityType: string, entityId: string) => void;
   toggleDarkMode: () => void;
   resetToSeedData: () => void;
+  setPrintSettings: (settings: PrintSettings) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -232,6 +254,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark';
+  });
+  const [printSettings, setPrintSettingsState] = useState<PrintSettings>(() => {
+    const item = localStorage.getItem('print_settings');
+    return item ? JSON.parse(item) : INITIAL_PRINT_SETTINGS;
   });
 
   const setBranches = (data: Branch[]) => {
@@ -284,6 +310,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const setPrintSettings = (settings: PrintSettings) => {
+    setPrintSettingsState(settings);
+    localStorage.setItem('print_settings', JSON.stringify(settings));
+  };
+
   const resetToSeedData = () => {
     localStorage.clear();
     window.location.reload();
@@ -291,8 +322,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      branches, regions, users, beneficiaries, categories, logs, isDarkMode,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, addLog, toggleDarkMode, resetToSeedData
+      branches, regions, users, beneficiaries, categories, logs, isDarkMode, printSettings,
+      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, addLog, toggleDarkMode, resetToSeedData, setPrintSettings
     }}>
       {children}
     </StoreContext.Provider>

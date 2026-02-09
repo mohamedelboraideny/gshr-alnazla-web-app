@@ -1,16 +1,16 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role, Gender, EDUCATION_LEVELS, SponsorshipStatus } from '../CharityStore';
 import { 
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  CheckSquare, Square, Building2, ChevronDown, ChevronRight, CornerDownLeft, Tag, Layers, Printer, Baby, AlertCircle, BookOpen, GraduationCap, Heart, Shield, Calendar, Link as LinkIcon, UserCheck, SearchCode, Fingerprint
+  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
 const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
-  const { beneficiaries, setBeneficiaries, regions, categories, addLog, branches } = useStore();
+  const { beneficiaries, setBeneficiaries, regions, categories, addLog, branches, printSettings, setPrintSettings } = useStore();
   const [searchParams] = useSearchParams();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +29,10 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const [isTreeView, setIsTreeView] = useState(true); 
   const [expandedFamilies, setExpandedFamilies] = useState<string[]>([]);
 
+  // Print Settings Modal State
+  const [isPrintSettingsOpen, setIsPrintSettingsOpen] = useState(false);
+  const [localPrintSettings, setLocalPrintSettings] = useState(printSettings);
+
   // Search Family Head states
   const [familySearchQuery, setFamilySearchQuery] = useState('');
   const [isLinkingFamily, setIsLinkingFamily] = useState(false);
@@ -44,6 +48,10 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       setFilterCategoryIds([]);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+     setLocalPrintSettings(printSettings);
+  }, [printSettings]);
 
   const initialForm = {
     name: '',
@@ -93,17 +101,28 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
 
   const treeData = useMemo(() => {
     if (!isTreeView) return [];
+    
+    // 1. Get filtered heads
     const heads = filteredBeneficiaries.filter(b => b.type === BeneficiaryType.FAMILY_HEAD);
+    
+    // 2. Get filtered individuals
     const individuals = filteredBeneficiaries.filter(b => b.type === BeneficiaryType.INDIVIDUAL);
-    const allMembers = beneficiaries.filter(b => b.type === BeneficiaryType.FAMILY_MEMBER);
+    
+    // 3. Prepare data structure
+    const result = [];
 
-    return [
-      ...heads.map(head => ({
-        ...head,
-        children: allMembers.filter(m => m.familyId === head.id)
-      })),
-      ...individuals.map(ind => ({ ...ind, children: [] }))
-    ];
+    // Add Heads and their members
+    heads.forEach(head => {
+       const members = beneficiaries.filter(m => m.familyId === head.id);
+       result.push({ ...head, children: members });
+    });
+
+    // Add Individuals
+    individuals.forEach(ind => {
+       result.push({ ...ind, children: [] });
+    });
+
+    return result;
   }, [filteredBeneficiaries, isTreeView, beneficiaries]);
 
   const toggleExpand = (id: string) => {
@@ -191,6 +210,19 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
+  // Helper to calculate Age
+  const calculateAge = (dateString: string) => {
+    if (!dateString) return '';
+    const birth = new Date(dateString);
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const branchRegions = regions.filter(r => isAdmin || r.branchId === user.branchId);
 
   // Search Results for Family Heads with enhanced UI
@@ -213,22 +245,26 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       title += ` (${catNames})`;
     }
     if (filterSponsorship) title += ` - ${filterSponsorship}`;
-    if (filterEducation) title += ` - ${filterEducation}`;
     return title;
-  }, [filterCategoryIds, filterSponsorship, filterEducation, categories]);
+  }, [filterCategoryIds, filterSponsorship, categories]);
 
   const branchName = branches.find(b => b.id === user.branchId)?.name || "الإدارة العامة";
+
+  const handleSavePrintSettings = () => {
+    setPrintSettings(localPrintSettings);
+    setIsPrintSettingsOpen(false);
+  };
 
   return (
     <div className="space-y-6">
       
-      {/* --- Specialized Print Header --- */}
-      <div className="hidden print:block mb-8 border-b-4 border-black pb-4">
+      {/* --- Specialized Dynamic Print Header --- */}
+      <div className="hidden print:block mb-6 border-b-2 border-black pb-4">
         <div className="flex justify-between items-start">
            <div className="text-right">
-              <h2 className="text-2xl font-black mb-1">الجمعية الشرعية الرئيسية</h2>
-              <p className="text-sm font-bold">لتعاون العاملين بالكتاب والسنة المحمدية</p>
-              <p className="text-sm font-bold">فرع: {branchName}</p>
+              <h2 className="text-2xl font-black mb-1">{printSettings.title}</h2>
+              <p className="text-sm font-bold">{printSettings.subtitle}</p>
+              {printSettings.showBranch && <p className="text-sm font-bold">فرع: {branchName}</p>}
            </div>
            <div className="text-center">
               <div className="w-16 h-16 border-2 border-black rounded-full flex items-center justify-center mx-auto mb-2 font-black text-xl">
@@ -236,13 +272,16 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
               </div>
            </div>
            <div className="text-left font-bold text-xs space-y-1">
-              <div className="flex justify-end gap-2"><span>التاريخ:</span> <span>{new Date().toLocaleDateString('ar-EG')}</span></div>
-              <div className="flex justify-end gap-2"><span>الوقت:</span> <span>{new Date().toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}</span></div>
-              <div className="flex justify-end gap-2"><span>القائم بالاستخراج:</span> <span>{user.name}</span></div>
+              {printSettings.showDate && (
+                <div className="flex justify-end gap-2"><span>التاريخ:</span> <span>{new Date().toLocaleDateString('ar-EG')}</span></div>
+              )}
+              {printSettings.showUser && (
+                <div className="flex justify-end gap-2"><span>المستخدم:</span> <span>{user.name}</span></div>
+              )}
            </div>
         </div>
-        <div className="mt-6 text-center">
-           <h3 className="text-xl font-black underline decoration-2 underline-offset-8 uppercase">{printTitle}</h3>
+        <div className="mt-4 text-center">
+           <h3 className="text-xl font-black underline decoration-2 underline-offset-4">{printTitle}</h3>
         </div>
       </div>
 
@@ -253,6 +292,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
         
         <div className="flex flex-wrap gap-3 w-full xl:w-auto">
+          <button 
+            onClick={() => setIsPrintSettingsOpen(true)}
+            className="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 font-bold transition shadow-sm"
+          >
+             <Settings size={18} />
+             <span className="text-sm">إعدادات الطباعة</span>
+          </button>
+
           <button 
             onClick={() => window.print()}
             className="flex-1 xl:flex-none bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-6 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-gray-200 font-bold transition"
@@ -297,14 +344,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
 
         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
-           <GraduationCap size={16} className="text-gray-400" />
-           <select className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0" value={filterEducation} onChange={(e) => setFilterEducation(e.target.value)}>
-              <option value="">كل المراحل الدراسية</option>
-              {EDUCATION_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
-           </select>
-        </div>
-
-        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
            <Heart size={16} className="text-gray-400" />
            <select className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0" value={filterSponsorship} onChange={(e) => setFilterSponsorship(e.target.value)}>
               <option value="">كل حالات الكفالة</option>
@@ -339,119 +378,204 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden print:border-none print:shadow-none">
+      <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden print:border-none print:shadow-none print:rounded-none">
         <div className="overflow-x-auto">
           <table className="w-full text-right border-collapse">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 print:bg-gray-100">
+            <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 print:bg-gray-200">
               <tr>
-                <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-widest w-[25%] print:text-black">الاسم / الهوية</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest print:text-black">الدراسة</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest print:text-black">الحالة والتصنيف</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest print:text-black">المنطقة</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-center print-hidden">التحكم</th>
+                <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest min-w-[180px] print:text-black">الاسم / الهوية</th>
+                <th className="px-2 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest w-[50px] text-center print:text-black">العمر</th>
+                <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">المرحلة</th>
+                <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">المدرسة / الجامعة</th>
+                <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">المنطقة</th>
+                <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">العنوان</th>
+                <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">التصنيف</th>
+                <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest w-[80px] print:text-black">الكفالة</th>
+                <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center print-hidden">تحكم</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {isTreeView ? (
                 treeData.map(item => (
                   <React.Fragment key={item.id}>
-                    <tr className="group hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-colors print:bg-white">
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4">
-                          {item.children.length > 0 ? (
-                            <button onClick={() => toggleExpand(item.id)} className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 print-hidden">
-                              {expandedFamilies.includes(item.id) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            </button>
-                          ) : <div className="w-7 print:hidden"></div>}
-                          <div>
-                            <p className="font-black text-gray-800 dark:text-gray-200 text-sm">{item.name}</p>
-                            <span className="text-[10px] text-gray-400 font-bold">{item.nationalId}</span>
+                    {/* Family Head Row */}
+                    <tr className="group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors print:bg-gray-100">
+                      <td className="px-4 py-3 relative">
+                        {/* Visual indicator for Tree */}
+                        {item.children.length > 0 && <div className="absolute right-0 top-0 bottom-0 w-1 bg-indigo-500 print:hidden"></div>}
+                        
+                        <div className="flex items-start gap-2">
+                          <button 
+                             onClick={() => toggleExpand(item.id)} 
+                             className="mt-1 p-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 print:hidden hover:bg-indigo-100 hover:text-indigo-600 transition"
+                          >
+                             {expandedFamilies.includes(item.id) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          </button>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1.5">
+                               {item.type === BeneficiaryType.FAMILY_HEAD ? <UsersIcon size={12} className="text-indigo-500 print:hidden" /> : <UserIcon size={12} className="text-gray-400 print:hidden" />}
+                               <p className="font-black text-gray-900 dark:text-gray-100 text-xs print:text-black">{item.name}</p>
+                            </div>
+                            <div className="flex flex-col mt-0.5">
+                               <span className="text-[10px] font-bold font-mono text-gray-500 print:text-black">{item.nationalId}</span>
+                               {item.phone && (
+                                <span className="text-[10px] font-mono text-gray-400 print:text-black flex items-center gap-1">
+                                  <Phone size={8} className="print:hidden" /> {item.phone}
+                                </span>
+                               )}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
-                         <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
-                            <BookOpen size={14} className="text-blue-500 print:hidden" />
-                            <span>{item.educationLevel || '---'}</span>
+
+                      <td className="px-2 py-3 text-center">
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 print:text-black">{calculateAge(item.birthDate)}</span>
+                      </td>
+
+                      <td className="px-3 py-3">
+                         <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 print:text-black">{item.educationLevel || '---'}</span>
+                      </td>
+
+                      <td className="px-4 py-3">
+                         <span className="text-[10px] text-gray-500 dark:text-gray-400 print:text-black">{item.schoolName || '---'}</span>
+                      </td>
+
+                      <td className="px-3 py-3 text-[10px] font-bold text-gray-600 dark:text-gray-300 print:text-black">
+                         {regions.find(r => r.id === item.regionId)?.name}
+                      </td>
+
+                      <td className="px-4 py-3">
+                         <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight block max-w-[150px] print:text-black">{item.address}</span>
+                      </td>
+
+                      <td className="px-3 py-3">
+                         <div className="flex flex-wrap gap-1">
+                           {item.categoryIds?.map(catId => (
+                             <span key={catId} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 print:border print:border-black print:bg-white print:text-black border border-transparent whitespace-nowrap">
+                               {categories.find(c => c.id === catId)?.name || '---'}
+                             </span>
+                           ))}
                          </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                           <div className="flex flex-wrap gap-1">
-                             {item.categoryIds?.map(catId => (
-                               <span key={catId} className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 print:border print:border-black print:bg-white print:text-black">
-                                 {categories.find(c => c.id === catId)?.name || 'غير معروف'}
-                               </span>
-                             ))}
-                           </div>
-                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black w-fit ${item.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 print:bg-gray-200 print:text-black' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 print:bg-white print:border print:border-gray-300'}`}>
-                              <Heart size={10} className={`print:hidden ${item.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'fill-emerald-500' : ''}`} />
-                              {item.sponsorshipStatus}
-                           </span>
-                        </div>
+
+                      <td className="px-3 py-3">
+                         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black w-fit border ${item.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700'} print:border-black print:bg-white print:text-black`}>
+                            {item.sponsorshipStatus}
+                         </span>
                       </td>
-                      <td className="px-6 py-5 text-xs text-gray-500 dark:text-gray-400">{regions.find(r => r.id === item.regionId)?.name}</td>
-                      <td className="px-6 py-5 flex justify-center gap-2 print-hidden">
-                         <button onClick={() => handleOpenModal(item.type, item.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-xl transition"><Edit3 size={18} /></button>
-                         <button onClick={() => setConfirmModal({ isOpen: true, id: item.id })} className="p-2 text-gray-400 hover:text-red-600 rounded-xl transition"><Trash2 size={18} /></button>
+
+                      <td className="px-4 py-3 flex justify-center gap-1 print-hidden">
+                         <button onClick={() => handleOpenModal(item.type, item.id)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit3 size={14} /></button>
+                         <button onClick={() => setConfirmModal({ isOpen: true, id: item.id })} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 size={14} /></button>
                       </td>
                     </tr>
-                    {expandedFamilies.includes(item.id) && item.children.map(child => (
-                      <tr key={child.id} className="bg-gray-50/50 dark:bg-gray-900/20 print:bg-white">
-                        <td className="px-20 py-3 text-xs font-bold text-gray-600 dark:text-gray-400 flex items-center gap-2 print:px-12">
-                          <Baby size={14} className="print:hidden" /> {child.name}
-                        </td>
-                        <td className="px-6 py-3">
-                           <div className="flex items-center gap-2 text-[11px] text-gray-500">
-                              {child.educationLevel || '---'}
+
+                    {/* Children Rows */}
+                    {(expandedFamilies.includes(item.id) || window.matchMedia('print').matches) && item.children.map(child => (
+                      <tr key={child.id} className="bg-white dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors print:bg-white">
+                        <td className="px-4 py-2 relative">
+                           {/* Tree Connector */}
+                           <div className="absolute right-6 top-0 bottom-1/2 w-3 border-r border-b border-gray-300 rounded-br-lg print:border-black"></div>
+                           
+                           <div className="mr-8 flex items-start gap-1.5">
+                             <CornerDownRight size={12} className="text-gray-300 mt-1 print:hidden" />
+                             <div>
+                               <p className="font-bold text-gray-700 dark:text-gray-300 text-[11px] print:text-black">{child.name}</p>
+                               <span className="text-[9px] font-mono text-gray-400 print:text-black block">{child.nationalId}</span>
+                             </div>
                            </div>
                         </td>
-                        <td className="px-6 py-3">
-                           <div className="flex flex-col gap-1">
-                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold w-fit ${child.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'bg-emerald-50 text-emerald-600 print:border print:border-black' : 'bg-gray-100 text-gray-400 print:bg-white'}`}>
-                                 {child.sponsorshipStatus}
-                              </span>
-                           </div>
+                        
+                        <td className="px-2 py-2 text-center">
+                          <span className="text-[11px] text-gray-600 dark:text-gray-400 print:text-black">{calculateAge(child.birthDate)}</span>
                         </td>
-                        <td className="px-6 py-3 text-xs text-gray-400">{regions.find(r => r.id === child.regionId)?.name}</td>
-                        <td className="px-6 py-3 flex justify-center gap-2 print-hidden">
-                           <button onClick={() => handleOpenModal(child.type, child.id)} className="p-1.5 text-gray-400 hover:text-blue-600 transition"><Edit3 size={16} /></button>
-                           <button onClick={() => setConfirmModal({ isOpen: true, id: child.id })} className="p-1.5 text-gray-400 hover:text-red-600 transition"><Trash2 size={16} /></button>
+                        
+                        <td className="px-3 py-2">
+                           <span className="text-[10px] text-gray-500 dark:text-gray-400 print:text-black">{child.educationLevel || '---'}</span>
+                        </td>
+
+                        <td className="px-4 py-2">
+                           <span className="text-[10px] text-gray-400 dark:text-gray-500 print:text-black">{child.schoolName || '---'}</span>
+                        </td>
+
+                        <td className="px-3 py-2 text-[10px] text-gray-400 print:text-black">
+                           {regions.find(r => r.id === child.regionId)?.name}
+                        </td>
+
+                        <td className="px-4 py-2 text-[10px] text-gray-400 print:text-black truncate max-w-[150px]">
+                           {child.address}
+                        </td>
+
+                        <td className="px-3 py-2">
+                           {child.categoryIds?.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                 {child.categoryIds.map(catId => (
+                                    <span key={catId} className="text-[9px] text-gray-500 print:text-black">
+                                       {categories.find(c => c.id === catId)?.name}
+                                    </span>
+                                 ))}
+                              </div>
+                           ) : <span className="text-[9px] text-gray-300">---</span>}
+                        </td>
+
+                        <td className="px-3 py-2">
+                           <span className={`text-[9px] ${child.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'text-emerald-600 font-bold' : 'text-gray-400'} print:text-black`}>
+                              {child.sponsorshipStatus}
+                           </span>
+                        </td>
+
+                        <td className="px-4 py-2 flex justify-center gap-1 print-hidden">
+                           <button onClick={() => handleOpenModal(child.type, child.id)} className="p-1 text-gray-300 hover:text-blue-600 transition"><Edit3 size={12} /></button>
+                           <button onClick={() => setConfirmModal({ isOpen: true, id: child.id })} className="p-1 text-gray-300 hover:text-red-600 transition"><Trash2 size={12} /></button>
                         </td>
                       </tr>
                     ))}
                   </React.Fragment>
                 ))
               ) : (
+                 // Flat View (Standard)
                 filteredBeneficiaries.map(b => (
                    <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:bg-white">
-                      <td className="px-8 py-5">
-                         <p className="font-black text-gray-800 dark:text-gray-200 text-sm">{b.name}</p>
-                         <span className="text-[10px] text-gray-400 font-bold">{b.nationalId}</span>
-                      </td>
-                      <td className="px-6 py-5">
-                         <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
-                            <span>{b.educationLevel || '---'}</span>
+                      <td className="px-4 py-3">
+                         <p className="font-black text-gray-800 dark:text-gray-200 text-xs print:text-black">{b.name}</p>
+                         <div className="flex flex-col mt-0.5">
+                            <span className="text-[10px] text-gray-500 font-mono font-bold print:text-black">{b.nationalId}</span>
+                            {b.phone && <span className="text-[10px] text-gray-400 font-mono print:text-black">{b.phone}</span>}
                          </div>
                       </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                           <div className="flex flex-wrap gap-1">
-                             {b.categoryIds?.map(catId => (
-                               <span key={catId} className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 print:border print:border-black print:text-black">
-                                 {categories.find(c => c.id === catId)?.name || 'غير معروف'}
-                               </span>
-                             ))}
-                           </div>
-                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black w-fit ${b.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>
-                              {b.sponsorshipStatus}
-                           </span>
-                        </div>
+                      <td className="px-2 py-3 text-center">
+                         <span className="text-xs font-bold text-gray-700 dark:text-gray-300 print:text-black">{calculateAge(b.birthDate)}</span>
                       </td>
-                      <td className="px-6 py-5 text-xs text-gray-500 dark:text-gray-400">{regions.find(r => r.id === b.regionId)?.name}</td>
-                      <td className="px-6 py-5 flex justify-center gap-2 print-hidden">
-                         <button onClick={() => handleOpenModal(b.type, b.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-xl transition"><Edit3 size={18} /></button>
-                         <button onClick={() => setConfirmModal({ isOpen: true, id: b.id })} className="p-2 text-gray-400 hover:text-red-600 rounded-xl transition"><Trash2 size={18} /></button>
+                      <td className="px-3 py-3">
+                         <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 print:text-black">{b.educationLevel || '---'}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                         <span className="text-[10px] text-gray-500 dark:text-gray-400 print:text-black">{b.schoolName || '---'}</span>
+                      </td>
+                      <td className="px-3 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 print:text-black">
+                         {regions.find(r => r.id === b.regionId)?.name}
+                      </td>
+                      <td className="px-4 py-3">
+                         <span className="text-[10px] text-gray-500 print:text-black block max-w-[150px] leading-tight">{b.address}</span>
+                      </td>
+                      <td className="px-3 py-3">
+                         <div className="flex flex-wrap gap-1">
+                           {b.categoryIds?.map(catId => (
+                             <span key={catId} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 print:border print:border-black print:bg-white print:text-black border border-transparent whitespace-nowrap">
+                               {categories.find(c => c.id === catId)?.name || '---'}
+                             </span>
+                           ))}
+                         </div>
+                      </td>
+                      <td className="px-3 py-3">
+                         <span className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[9px] font-black w-fit border ${b.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-gray-50 border-gray-200 text-gray-500'} print:border-black print:bg-white print:text-black`}>
+                            {b.sponsorshipStatus}
+                         </span>
+                      </td>
+                      <td className="px-4 py-3 flex justify-center gap-1 print-hidden">
+                         <button onClick={() => handleOpenModal(b.type, b.id)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg transition"><Edit3 size={16} /></button>
+                         <button onClick={() => setConfirmModal({ isOpen: true, id: b.id })} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition"><Trash2 size={16} /></button>
                       </td>
                    </tr>
                 ))
@@ -459,24 +583,129 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
             </tbody>
           </table>
         </div>
-        {/* Print Signatures */}
-        <div className="hidden print:flex mt-12 justify-between px-10 font-bold">
+        
+        {/* Dynamic Print Signatures */}
+        <div className="hidden print:flex mt-10 justify-between px-10 font-bold break-inside-avoid">
            <div className="text-center">
-              <p>توقيع الموظف المختص</p>
-              <div className="mt-10 border-b border-black w-40 mx-auto"></div>
+              <p>{printSettings.footerRight}</p>
+              <div className="mt-8 border-b border-black w-40 mx-auto"></div>
            </div>
            <div className="text-center">
-              <p>توقيع مدير الفرع</p>
-              <div className="mt-10 border-b border-black w-40 mx-auto"></div>
+              <p>{printSettings.footerLeft}</p>
+              <div className="mt-8 border-b border-black w-40 mx-auto"></div>
            </div>
            <div className="text-center">
               <p>ختم الجمعية</p>
-              <div className="mt-10 border-2 border-black border-dashed rounded-full w-24 h-24 mx-auto opacity-20 flex items-center justify-center">الختم</div>
+              <div className="mt-6 border-2 border-black border-dashed rounded-full w-20 h-20 mx-auto opacity-20 flex items-center justify-center text-xs">ختم</div>
            </div>
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* --- Print Settings Modal --- */}
+      {isPrintSettingsOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+           <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                 <h3 className="text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
+                    <Printer className="text-emerald-500" size={20} />
+                    إعدادات وتخصيص الطباعة
+                 </h3>
+                 <button onClick={() => setIsPrintSettingsOpen(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition text-gray-400"><X size={20} /></button>
+              </div>
+              <div className="p-6 space-y-4">
+                 
+                 <div className="space-y-4">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">ترويسة الصفحة (Header)</h4>
+                    <div>
+                       <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">العنوان الرئيسي</label>
+                       <input 
+                         type="text" 
+                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
+                         value={localPrintSettings.title}
+                         onChange={(e) => setLocalPrintSettings({...localPrintSettings, title: e.target.value})}
+                       />
+                    </div>
+                    <div>
+                       <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">العنوان الفرعي / الوصف</label>
+                       <input 
+                         type="text" 
+                         className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
+                         value={localPrintSettings.subtitle}
+                         onChange={(e) => setLocalPrintSettings({...localPrintSettings, subtitle: e.target.value})}
+                       />
+                    </div>
+                 </div>
+
+                 <hr className="border-gray-100 dark:border-gray-700" />
+
+                 <div className="space-y-4">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">تذييل الصفحة (Footer)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">توقيع اليمين</label>
+                          <input 
+                            type="text" 
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
+                            value={localPrintSettings.footerRight}
+                            onChange={(e) => setLocalPrintSettings({...localPrintSettings, footerRight: e.target.value})}
+                          />
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1.5">توقيع اليسار</label>
+                          <input 
+                            type="text" 
+                            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
+                            value={localPrintSettings.footerLeft}
+                            onChange={(e) => setLocalPrintSettings({...localPrintSettings, footerLeft: e.target.value})}
+                          />
+                       </div>
+                    </div>
+                 </div>
+
+                 <hr className="border-gray-100 dark:border-gray-700" />
+
+                 <div>
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">خيارات العرض</h4>
+                    <div className="flex flex-wrap gap-4">
+                       <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <input 
+                             type="checkbox" 
+                             className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                             checked={localPrintSettings.showDate}
+                             onChange={(e) => setLocalPrintSettings({...localPrintSettings, showDate: e.target.checked})}
+                          />
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">إظهار التاريخ</span>
+                       </label>
+                       <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <input 
+                             type="checkbox" 
+                             className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                             checked={localPrintSettings.showUser}
+                             onChange={(e) => setLocalPrintSettings({...localPrintSettings, showUser: e.target.checked})}
+                          />
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">إظهار اسم المستخدم</span>
+                       </label>
+                       <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <input 
+                             type="checkbox" 
+                             className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                             checked={localPrintSettings.showBranch}
+                             onChange={(e) => setLocalPrintSettings({...localPrintSettings, showBranch: e.target.checked})}
+                          />
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">إظهار اسم الفرع</span>
+                       </label>
+                    </div>
+                 </div>
+              </div>
+              <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex gap-4">
+                 <button onClick={() => setIsPrintSettingsOpen(false)} className="flex-1 py-3 text-sm font-black text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 transition">إلغاء</button>
+                 <button onClick={handleSavePrintSettings} className="flex-1 py-3 text-sm font-black text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition">حفظ التفضيلات</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Add/Edit Modal (Existing code unchanged) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">

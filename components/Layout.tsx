@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Building2, UserPlus, History, LogOut, Map, BarChart3, Sun, Moon, Tag, RotateCcw, Menu, X,
-  Baby, HeartPulse, HandHelping, Sparkles
+  Baby, HeartPulse, HandHelping, Sparkles, Settings
 } from 'lucide-react';
 import { User, Role, useStore } from '../CharityStore';
 
@@ -29,18 +29,31 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     }
   }, [location]);
 
-  const navItems = [
-    { to: '/', icon: <LayoutDashboard size={22} />, label: 'لوحة التحكم', allowed: true },
-    { to: '/beneficiaries', icon: <Users size={22} />, label: 'سجل المستفيدين', allowed: true },
-    
-    { to: '/reports', icon: <BarChart3 size={22} />, label: 'التقارير والإحصائيات', allowed: isAdmin || isManager },
-    { to: '/regions', icon: <Map size={22} />, label: 'المناطق الجغرافية', allowed: isAdmin || isManager },
-    
-    { to: '/branches', icon: <Building2 size={22} />, label: 'إدارة الفروع', allowed: isAdmin },
-    { to: '/users', icon: <UserPlus size={22} />, label: 'شؤون الموظفين', allowed: isAdmin },
-    { to: '/statuses', icon: <Tag size={22} />, label: 'تصنيفات الحالات', allowed: isAdmin },
-    
-    { to: '/logs', icon: <History size={22} />, label: 'سجل العمليات', allowed: isAdmin || isManager },
+  // Grouped Navigation Items
+  const navGroups = [
+    {
+      title: 'العمليات الرئيسية',
+      items: [
+        { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', allowed: true },
+        { to: '/beneficiaries', icon: <Users size={20} />, label: 'سجل المستفيدين', allowed: true },
+      ]
+    },
+    {
+      title: 'التقارير والمتابعة',
+      items: [
+        { to: '/reports', icon: <BarChart3 size={20} />, label: 'التقارير والإحصائيات', allowed: isAdmin || isManager },
+        { to: '/logs', icon: <History size={20} />, label: 'سجل العمليات', allowed: isAdmin || isManager },
+      ]
+    },
+    {
+      title: 'إعدادات النظام',
+      items: [
+        { to: '/branches', icon: <Building2 size={20} />, label: 'إدارة الفروع', allowed: isAdmin },
+        { to: '/regions', icon: <Map size={20} />, label: 'المناطق الجغرافية', allowed: isAdmin || isManager },
+        { to: '/users', icon: <UserPlus size={20} />, label: 'شؤون الموظفين', allowed: isAdmin },
+        { to: '/statuses', icon: <Tag size={20} />, label: 'تصنيفات الحالات', allowed: isAdmin },
+      ]
+    }
   ];
 
   // Quick Filters configuration
@@ -70,7 +83,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       >
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
-          <div className="p-8 flex items-center gap-4 border-b border-gray-50 dark:border-gray-800/50">
+          <div className="p-6 flex items-center gap-4 border-b border-gray-50 dark:border-gray-800/50">
             <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-emerald-500/30 shrink-0">
               ش
             </div>
@@ -85,36 +98,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-2 custom-scrollbar">
-            {navItems.filter(item => item.allowed).map((item) => (
-              <NavLink
-                key={item.to} to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group relative overflow-hidden ${
-                    isActive
-                      ? 'bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-600/20'
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-gray-800 hover:text-emerald-700 dark:hover:text-emerald-400 font-medium'
-                  }`
-                }
-              >
-                <span className="relative z-10">{item.icon}</span>
-                <span className="relative z-10 text-sm">{item.label}</span>
-              </NavLink>
-            ))}
-
-            {/* Quick Access Section */}
-            <div className="pt-6 pb-2 px-4">
-               <div className="flex items-center gap-2 mb-4">
+          <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-8 custom-scrollbar">
+            
+            {/* Quick Access Section - Moved to Top */}
+            <div>
+               <div className="flex items-center gap-2 mb-3 px-2">
                   <Sparkles size={14} className="text-amber-500" />
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">وصول سريع</span>
                </div>
-               <div className="space-y-1.5">
+               <div className="space-y-2">
                   {quickFilters.map((filter, idx) => (
                     <NavLink
                       key={idx}
                       to={filter.to}
                       className={({ isActive }) => 
-                        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 border ${
+                        `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 border ${
                           isActive 
                             ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm scale-[1.02]' 
                             : 'border-transparent hover:bg-white dark:hover:bg-gray-800/50 hover:shadow-sm'
@@ -129,6 +127,42 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                   ))}
                </div>
             </div>
+
+            {navGroups.map((group, groupIdx) => {
+              // Filter items based on permissions
+              const allowedItems = group.items.filter(item => item.allowed);
+              
+              // If group has no allowed items, don't render it
+              if (allowedItems.length === 0) return null;
+
+              return (
+                <div key={groupIdx} className="space-y-2">
+                  <div className="px-2 mb-2 flex items-center gap-2">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      {group.title}
+                    </span>
+                    <div className="h-px bg-gray-100 dark:bg-gray-800 flex-1"></div>
+                  </div>
+                  
+                  {allowedItems.map((item) => (
+                    <NavLink
+                      key={item.to} to={item.to}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group relative overflow-hidden ${
+                          isActive
+                            ? 'bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-600/20'
+                            : 'text-gray-500 dark:text-gray-400 hover:bg-emerald-50 dark:hover:bg-gray-800 hover:text-emerald-700 dark:hover:text-emerald-400 font-medium'
+                        }`
+                      }
+                    >
+                      <span className="relative z-10">{item.icon}</span>
+                      <span className="relative z-10 text-sm">{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              );
+            })}
+
           </nav>
 
           {/* Sidebar Footer */}
