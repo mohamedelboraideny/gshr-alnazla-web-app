@@ -34,15 +34,21 @@
             /* Reset layout for print to avoid blank pages */
             html, body {
                 height: auto !important;
+                min-height: 0 !important;
                 overflow: visible !important;
                 background: white !important;
                 color: black !important;
                 font-size: 10pt;
             }
 
-            /* Hide UI elements */
-            aside, header, nav, button, .print-hidden, .modal-overlay, .no-print, .shadow-sm, .shadow-2xl { 
+            /* Hide UI elements - Fixed: Removed shadow classes from here to prevent hiding content */
+            aside, header, nav, button, .print-hidden, .modal-overlay, .no-print { 
                 display: none !important; 
+            }
+
+            /* Remove Shadows specifically */
+            .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl {
+                box-shadow: none !important;
             }
 
             /* Ensure main content takes full width */
@@ -107,10 +113,11 @@
             div, tr, td, th {
                 box-shadow: none !important;
                 border-radius: 0 !important;
+                border-color: #000 !important; /* Force borders to black */
             }
             
             /* Typography adjustments */
-            p, span, div {
+            p, span, div, h1, h2, h3, h4 {
                 color: black !important;
             }
         }
@@ -145,7 +152,7 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="./assets/index-DIyBjv2a.js"></script>
+  <script type="module" crossorigin src="./assets/index-kkfq4FgN.js"></script>
 </head>
 <body>
     <div id="root"></div>
