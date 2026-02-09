@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Building2, UserPlus, History, LogOut, Map, BarChart3, Sun, Moon, Tag, RotateCcw, Menu, X,
-  Baby, HeartPulse, HandHelping, Sparkles, Settings
+  Baby, HeartPulse, HandHelping, Sparkles, Settings, HeartHandshake
 } from 'lucide-react';
 import { User, Role, useStore } from '../CharityStore';
 
@@ -36,6 +36,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       items: [
         { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', allowed: true },
         { to: '/beneficiaries', icon: <Users size={20} />, label: 'سجل المستفيدين', allowed: true },
+        { to: '/sponsors', icon: <HeartHandshake size={20} />, label: 'إدارة الكفلاء', allowed: true },
       ]
     },
     {
@@ -191,7 +192,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 w-full lg:mr-72`}>
         
         {/* Top Header */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 h-20 px-4 lg:px-8 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 h-20 px-4 lg:px-8 flex items-center justify-between print-hidden">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl lg:hidden">
               <Menu size={24} />

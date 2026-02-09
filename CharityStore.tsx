@@ -98,6 +98,18 @@ export interface User {
   isFirstLogin?: boolean;
 }
 
+export interface Sponsor {
+  id: string;
+  name: string;
+  phone: string;
+  amount: number;
+  frequency: 'شهري' | 'سنوي' | 'مرة واحدة';
+  status: 'نشط' | 'متوقف';
+  startDate: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface Beneficiary {
   id: string;
   name: string;
@@ -191,6 +203,12 @@ const INITIAL_USERS: User[] = [
   { id: 'u1', name: 'أحمد الإدريسي', username: 'admin', password: '123', role: Role.ADMIN, branchId: 'b1', isFirstLogin: false },
   { id: 'u2', name: 'سناء يوسف', username: 'manager', password: '123', role: Role.MANAGER, branchId: 'b2', isFirstLogin: false },
   { id: 'u3', name: 'ياسر كمال', username: 'staff', password: '123', role: Role.STAFF, branchId: 'b3', isFirstLogin: false },
+];
+
+const INITIAL_SPONSORS: Sponsor[] = [
+  { id: 'sp1', name: 'الحاج محمد الطيب', phone: '01012345678', amount: 5000, frequency: 'شهري', status: 'نشط', startDate: '2023-01-01', notes: 'فاعل خير معروف', createdAt: new Date().toISOString() },
+  { id: 'sp2', name: 'شركة النور للمقاولات', phone: '01298765432', amount: 20000, frequency: 'سنوي', status: 'نشط', startDate: '2023-03-15', notes: 'زكاة مال', createdAt: new Date().toISOString() },
+  { id: 'sp3', name: 'د. سمير غانم', phone: '01111222333', amount: 1000, frequency: 'شهري', status: 'متوقف', startDate: '2022-05-01', notes: 'كفالة أيتام', createdAt: new Date().toISOString() },
 ];
 
 const INITIAL_PRINT_SETTINGS: PrintSettings = {
@@ -339,6 +357,7 @@ interface StoreContextType {
   beneficiaries: Beneficiary[];
   categories: BeneficiaryCategory[];
   healthConditions: HealthCondition[];
+  sponsors: Sponsor[];
   logs: AuditLog[];
   isDarkMode: boolean;
   printSettings: PrintSettings;
@@ -348,6 +367,7 @@ interface StoreContextType {
   setBeneficiaries: (data: Beneficiary[]) => void;
   setCategories: (data: BeneficiaryCategory[]) => void;
   setHealthConditions: (data: HealthCondition[]) => void;
+  setSponsors: (data: Sponsor[]) => void;
   addLog: (user: User, action: string, entityType: string, entityId: string) => void;
   toggleDarkMode: () => void;
   resetToSeedData: () => void;
@@ -380,6 +400,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [healthConditions, setHealthConditionsState] = useState<HealthCondition[]>(() => {
     const item = localStorage.getItem('healthConditions');
     return item ? JSON.parse(item) : INITIAL_HEALTH_CONDITIONS;
+  });
+  const [sponsors, setSponsorsState] = useState<Sponsor[]>(() => {
+    const item = localStorage.getItem('sponsors');
+    return item ? JSON.parse(item) : INITIAL_SPONSORS;
   });
   const [logs, setLogsState] = useState<AuditLog[]>(() => {
     const item = localStorage.getItem('audit_logs');
@@ -423,6 +447,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('healthConditions', JSON.stringify(data));
   };
 
+  const setSponsors = (data: Sponsor[]) => {
+    setSponsorsState(data);
+    localStorage.setItem('sponsors', JSON.stringify(data));
+  };
+
   const addLog = (user: User, action: string, entityType: string, entityId: string) => {
     const newLog: AuditLog = {
       id: Math.random().toString(36).substring(2, 11),
@@ -460,8 +489,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      branches, regions, users, beneficiaries, categories, healthConditions, logs, isDarkMode, printSettings,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, addLog, toggleDarkMode, resetToSeedData, setPrintSettings
+      branches, regions, users, beneficiaries, categories, healthConditions, sponsors, logs, isDarkMode, printSettings,
+      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, setSponsors, addLog, toggleDarkMode, resetToSeedData, setPrintSettings
     }}>
       {children}
     </StoreContext.Provider>

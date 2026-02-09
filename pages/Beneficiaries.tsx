@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle
+  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle, Filter
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -351,6 +351,12 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           />
         </div>
         
+        {/* Results Counter Badge */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
+           <Filter size={16} />
+           <span className="text-xs font-black">النتائج: {filteredBeneficiaries.length}</span>
+        </div>
+        
         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
            <MapPin size={16} className="text-gray-400" />
            <select className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0" value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}>
@@ -415,7 +421,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 treeData.map(item => (
                   <React.Fragment key={item.id}>
                     {/* Family Head Row */}
-                    <tr className="group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors print:bg-white">
+                    <tr className="group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors print:bg-gray-100">
                       <td className="px-4 py-3 relative">
                         {/* Visual indicator for Tree */}
                         {item.children.length > 0 && <div className="absolute right-0 top-0 bottom-0 w-1 bg-indigo-500 print:hidden"></div>}
@@ -658,7 +664,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
            </div>
            <div className="w-1/3 text-center">
               <p className="text-[10px] text-gray-500">تمت الطباعة بواسطة نظام الجمعية الإلكتروني</p>
-              {/* CSS Counter implementation for page numbers usually happens in @page, but we can add a visual aid here */}
+              {/* This span will be targeted by CSS for page numbers */}
+              <span className="page-number text-[10px] font-bold"></span>
            </div>
            <div className="w-1/3 text-center">
               <p className="font-bold text-xs">{printSettings.footerLeft}</p>
