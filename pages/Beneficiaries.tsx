@@ -464,6 +464,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           <table className="w-full text-right border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 print:bg-gray-200">
               <tr>
+                <th className="px-2 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest w-[30px] text-center print:text-black">م</th>
                 <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest min-w-[200px] print:text-black">الاسم / الهوية</th>
                 <th className="px-2 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest w-[50px] text-center print:text-black">العمر</th>
                 <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">المرحلة</th>
@@ -477,10 +478,11 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {isTreeView ? (
-                treeData.map(item => (
+                treeData.map((item, index) => (
                   <React.Fragment key={item.id}>
                     {/* Family Head Row */}
                     <tr className="group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors print:bg-gray-100">
+                      <td className="px-2 py-3 text-center text-xs font-bold text-gray-400 print:text-black">{index + 1}</td>
                       <td className="px-4 py-3 relative">
                         {/* Visual indicator for Tree */}
                         {item.children.length > 0 && <div className="absolute right-0 top-0 bottom-0 w-1 bg-indigo-500 print:hidden"></div>}
@@ -565,8 +567,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                     </tr>
 
                     {/* Children Rows */}
-                    {(expandedFamilies.includes(item.id) || window.matchMedia('print').matches) && item.children.map(child => (
+                    {(expandedFamilies.includes(item.id) || window.matchMedia('print').matches) && item.children.map((child, cIndex) => (
                       <tr key={child.id} className="bg-white dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors print:bg-white">
+                        <td className="px-2 py-2 text-center text-[10px] text-gray-300 print:text-black"></td>
                         <td className="px-4 py-2 relative">
                            {/* Improved Tree Visuals */}
                            <div className="absolute right-6 top-0 h-full w-px bg-gray-200 dark:bg-gray-700 print:bg-black"></div>
@@ -648,8 +651,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 ))
               ) : (
                  // Flat View (Standard)
-                filteredBeneficiaries.map(b => (
+                filteredBeneficiaries.map((b, index) => (
                    <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:bg-white">
+                      <td className="px-2 py-3 text-center text-xs font-bold text-gray-400 print:text-black">{index + 1}</td>
                       <td className="px-4 py-3">
                          <div className="flex items-center gap-2">
                             <p className="font-black text-gray-800 dark:text-gray-200 text-xs print:text-black">{b.name}</p>
@@ -791,6 +795,237 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                  <button onClick={handleSavePrintSettings} className="flex-1 py-3 text-sm font-black text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition">حفظ التفضيلات</button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* --- Add/Edit Modal --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 print-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 shrink-0">
+               <h3 className="text-xl font-black text-gray-800 dark:text-white flex items-center gap-2">
+                  {modalType === BeneficiaryType.FAMILY_HEAD ? <UsersIcon className="text-indigo-600" size={24} /> : <UserIcon className="text-emerald-600" size={24} />}
+                  {editId ? 'تعديل بيانات' : 'إضافة سجل جديد'} - {modalType}
+               </h3>
+               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition"><X size={20} /></button>
+            </div>
+            
+            <div className="p-8 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 
+                 {/* Personal Info */}
+                 <div className="lg:col-span-3 pb-4 border-b border-gray-100 dark:border-gray-700 mb-2">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                       <Fingerprint size={16} /> البيانات الشخصية الأساسية
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الاسم رباعي</label>
+                          <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="الاسم كما في البطاقة" />
+                          {errors.name && <p className="text-red-500 text-[10px] mt-1">{errors.name}</p>}
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الرقم القومي (14 رقم)</label>
+                          <input type="text" maxLength={14} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold font-mono" value={formData.nationalId} onChange={e => setFormData({...formData, nationalId: e.target.value})} placeholder="xxxxxxxxxxxxxx" />
+                          {errors.nationalId && <p className="text-red-500 text-[10px] mt-1">{errors.nationalId}</p>}
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">تاريخ الميلاد</label>
+                          <input type="date" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+                          {errors.birthDate && <p className="text-red-500 text-[10px] mt-1">{errors.birthDate}</p>}
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">رقم الهاتف</label>
+                          <input type="tel" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold font-mono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="01xxxxxxxxx" />
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الجنس</label>
+                          <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as Gender})}>
+                             <option value={Gender.MALE}>{Gender.MALE}</option>
+                             <option value={Gender.FEMALE}>{Gender.FEMALE}</option>
+                          </select>
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الحالة الاجتماعية / التصنيف</label>
+                          <div className="relative">
+                             <div className="flex flex-wrap gap-2 bg-gray-50 dark:bg-gray-900 p-2 rounded-xl min-h-[46px]">
+                                {formData.categoryIds.map(catId => (
+                                   <span key={catId} className="px-2 py-1 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold text-emerald-600 shadow-sm flex items-center gap-1">
+                                      {categories.find(c => c.id === catId)?.name}
+                                      <button onClick={() => setFormData(prev => ({...prev, categoryIds: prev.categoryIds.filter(id => id !== catId)}))} className="hover:text-red-500"><X size={12} /></button>
+                                   </span>
+                                ))}
+                                <button onClick={() => setIsCatDropdownOpen(!isCatDropdownOpen)} className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-100 transition">+</button>
+                             </div>
+                             {isCatDropdownOpen && (
+                               <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto p-2">
+                                  {categories.map(cat => (
+                                     <div key={cat.id} onClick={() => {
+                                        if(!formData.categoryIds.includes(cat.id)) {
+                                           setFormData(prev => ({...prev, categoryIds: [...prev.categoryIds, cat.id]}));
+                                        }
+                                        setIsCatDropdownOpen(false);
+                                     }} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer text-sm font-bold">
+                                        {cat.name}
+                                     </div>
+                                  ))}
+                               </div>
+                             )}
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Address & Location */}
+                 <div className="lg:col-span-3 pb-4 border-b border-gray-100 dark:border-gray-700 mb-2">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                       <MapPin size={16} /> الموقع والعنوان
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">المنطقة التابعة للفرع</label>
+                          <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.regionId} onChange={e => setFormData({...formData, regionId: e.target.value})}>
+                             <option value="">اختر المنطقة</option>
+                             {branchRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                          </select>
+                          {errors.regionId && <p className="text-red-500 text-[10px] mt-1">{errors.regionId}</p>}
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">العنوان بالتفصيل</label>
+                          <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="اسم الشارع، رقم المنزل، علامة مميزة" />
+                       </div>
+                    </div>
+                 </div>
+                 
+                 {/* Education & Health */}
+                 <div className="lg:col-span-3 pb-4 border-b border-gray-100 dark:border-gray-700 mb-2">
+                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                       <BookOpen size={16} /> التعليم والصحة
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">المرحلة التعليمية</label>
+                          <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.educationLevel} onChange={e => setFormData({...formData, educationLevel: e.target.value})}>
+                             {EDUCATION_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                          </select>
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">اسم المدرسة / الكلية</label>
+                          <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.schoolName} onChange={e => setFormData({...formData, schoolName: e.target.value})} />
+                       </div>
+                       <div>
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الحالة الصحية (متعدد)</label>
+                          <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded-xl max-h-32 overflow-y-auto">
+                             {healthConditions.map(hc => (
+                                <label key={hc.id} className="flex items-center gap-2 p-1.5 hover:bg-white dark:hover:bg-gray-800 rounded-lg cursor-pointer">
+                                   <input 
+                                     type="checkbox" 
+                                     className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                                     checked={formData.healthConditions.includes(hc.name)}
+                                     onChange={(e) => {
+                                       if(e.target.checked) setFormData(prev => ({...prev, healthConditions: [...prev.healthConditions, hc.name]}));
+                                       else setFormData(prev => ({...prev, healthConditions: prev.healthConditions.filter(n => n !== hc.name)}));
+                                     }}
+                                   />
+                                   <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{hc.name}</span>
+                                </label>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Family Linking (Only if not Head) */}
+                 {modalType !== BeneficiaryType.FAMILY_HEAD && (
+                   <div className="lg:col-span-3 bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                      <div className="flex items-center justify-between mb-4">
+                         <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                            <LinkIcon size={16} /> الربط الأسري
+                         </h4>
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded" checked={isLinkingFamily} onChange={(e) => setIsLinkingFamily(e.target.checked)} />
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">ربط بأسرة موجودة (كفرد تابع)</span>
+                         </label>
+                      </div>
+                      
+                      {isLinkingFamily && (
+                        <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                           <div className="relative">
+                              <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                              <input 
+                                type="text" 
+                                className="w-full pr-12 pl-4 py-3 bg-white dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm font-bold" 
+                                placeholder="ابحث عن رب الأسرة بالاسم أو الرقم القومي..."
+                                value={familySearchQuery}
+                                onChange={(e) => {
+                                   setFamilySearchQuery(e.target.value);
+                                   setIsSearchingHeads(true);
+                                }}
+                              />
+                              {familySearchQuery && isSearchingHeads && (
+                                 <div className="absolute top-full right-0 w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-10 overflow-hidden border border-gray-100 dark:border-gray-700 max-h-48 overflow-y-auto">
+                                    {familyHeadResults.map(head => (
+                                       <div key={head.id} onClick={() => {
+                                          setFormData(prev => ({...prev, familyId: head.id}));
+                                          setFamilySearchQuery(head.name);
+                                          setIsSearchingHeads(false);
+                                       }} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                                          <p className="font-bold text-sm text-gray-800 dark:text-gray-200">{head.name}</p>
+                                          <p className="text-xs text-gray-400 font-mono">{head.nationalId}</p>
+                                       </div>
+                                    ))}
+                                    {familyHeadResults.length === 0 && <p className="p-3 text-center text-gray-400 text-xs">لا توجد نتائج</p>}
+                                 </div>
+                              )}
+                           </div>
+                           
+                           {formData.familyId && (
+                              <div className="flex gap-4 items-center bg-white dark:bg-gray-800 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
+                                 <div className="flex-1">
+                                    <p className="text-xs text-gray-400 mb-1">تم اختيار رب الأسرة:</p>
+                                    <p className="font-bold text-indigo-600 dark:text-indigo-400">{selectedFamilyHead?.name}</p>
+                                 </div>
+                                 <div className="flex-1">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1.5">صلة القرابة</label>
+                                    <select className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-sm font-bold" value={formData.kinshipRelation} onChange={e => setFormData({...formData, kinshipRelation: e.target.value})}>
+                                       <option value="">اختر الصلة</option>
+                                       {KINSHIP_RELATIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                    {errors.kinshipRelation && <p className="text-red-500 text-[10px] mt-1">{errors.kinshipRelation}</p>}
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+                      )}
+                   </div>
+                 )}
+
+                 {/* System Status */}
+                 <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                    <div>
+                       <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">حالة السجل</label>
+                       <div className="flex bg-gray-50 dark:bg-gray-900 p-1 rounded-xl">
+                          <button onClick={() => setFormData({...formData, status: BeneficiaryStatus.ACTIVE})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${formData.status === BeneficiaryStatus.ACTIVE ? 'bg-white shadow text-emerald-600' : 'text-gray-400'}`}>نشط</button>
+                          <button onClick={() => setFormData({...formData, status: BeneficiaryStatus.SUSPENDED})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${formData.status === BeneficiaryStatus.SUSPENDED ? 'bg-white shadow text-red-600' : 'text-gray-400'}`}>موقوف</button>
+                       </div>
+                    </div>
+                    <div>
+                       <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">حالة الكفالة</label>
+                       <div className="flex bg-gray-50 dark:bg-gray-900 p-1 rounded-xl">
+                          <button onClick={() => setFormData({...formData, sponsorshipStatus: SponsorshipStatus.SPONSORED})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${formData.sponsorshipStatus === SponsorshipStatus.SPONSORED ? 'bg-white shadow text-emerald-600' : 'text-gray-400'}`}>مكفول</button>
+                          <button onClick={() => setFormData({...formData, sponsorshipStatus: SponsorshipStatus.NOT_SPONSORED})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${formData.sponsorshipStatus === SponsorshipStatus.NOT_SPONSORED ? 'bg-white shadow text-gray-600' : 'text-gray-400'}`}>غير مكفول</button>
+                       </div>
+                    </div>
+                 </div>
+
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex gap-4 shrink-0">
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-sm font-black text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 transition">إلغاء</button>
+              <button onClick={handleSave} className="flex-1 py-3 text-sm font-black text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition">حفظ البيانات</button>
+            </div>
+          </div>
         </div>
       )}
 
