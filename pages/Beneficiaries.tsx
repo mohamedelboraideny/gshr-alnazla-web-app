@@ -1,16 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role, Gender, EDUCATION_LEVELS, SponsorshipStatus } from '../CharityStore';
+import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role, Gender, EDUCATION_LEVELS, SponsorshipStatus, KINSHIP_RELATIONS } from '../CharityStore';
 import { 
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings
+  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
 const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
-  const { beneficiaries, setBeneficiaries, regions, categories, addLog, branches, printSettings, setPrintSettings } = useStore();
+  const { beneficiaries, setBeneficiaries, regions, categories, healthConditions, addLog, branches, printSettings, setPrintSettings } = useStore();
   const [searchParams] = useSearchParams();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,7 +62,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     gender: Gender.MALE,
     regionId: '',
     categoryIds: [] as string[],
+    healthConditions: [] as string[],
     familyId: '',
+    kinshipRelation: '',
     educationLevel: 'غير ملتحق',
     schoolName: '',
     status: BeneficiaryStatus.ACTIVE,
@@ -143,7 +145,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           gender: b.gender || Gender.MALE,
           regionId: b.regionId || '', 
           categoryIds: b.categoryIds || [],
+          healthConditions: b.healthConditions || [],
           familyId: b.familyId || '', 
+          kinshipRelation: b.kinshipRelation || '',
           educationLevel: b.educationLevel || 'غير ملتحق',
           schoolName: b.schoolName || '',
           status: b.status,
@@ -174,6 +178,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     }
     if (!formData.birthDate) newErrors.birthDate = 'تاريخ الميلاد مطلوب';
     if (!formData.regionId) newErrors.regionId = 'المنطقة مطلوبة';
+    if (isLinkingFamily && formData.familyId && !formData.kinshipRelation) {
+       newErrors.kinshipRelation = 'يجب تحديد صلة القرابة برب الأسرة';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -255,6 +262,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     setPrintSettings(localPrintSettings);
     setIsPrintSettingsOpen(false);
   };
+
+  // Check if any "Sick" or "Disabled" category is selected to highlight health conditions
+  const isHealthConditionRelevant = useMemo(() => {
+    // Check against keywords or specific IDs. Here we check keywords in category names for flexibility
+    const relevantKeywords = ['مريض', 'مرضى', 'إعاقة', 'ذوي احتياجات', 'عجز'];
+    const selectedCats = categories.filter(c => formData.categoryIds.includes(c.id));
+    return selectedCats.some(c => relevantKeywords.some(kw => c.name.includes(kw)));
+  }, [formData.categoryIds, categories]);
 
   return (
     <div className="space-y-6">
@@ -384,13 +399,13 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
           <table className="w-full text-right border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 print:bg-gray-200">
               <tr>
-                <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest min-w-[180px] print:text-black">الاسم / الهوية</th>
+                <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest min-w-[200px] print:text-black">الاسم / الهوية</th>
                 <th className="px-2 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest w-[50px] text-center print:text-black">العمر</th>
                 <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">المرحلة</th>
                 <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">المدرسة / الجامعة</th>
                 <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">المنطقة</th>
                 <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">العنوان</th>
-                <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">التصنيف</th>
+                <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-black">التصنيف والصحة</th>
                 <th className="px-3 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest w-[80px] print:text-black">الكفالة</th>
                 <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center print-hidden">تحكم</th>
               </tr>
@@ -417,6 +432,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                             <div className="flex items-center gap-1.5">
                                {item.type === BeneficiaryType.FAMILY_HEAD ? <UsersIcon size={12} className="text-indigo-500 print:hidden" /> : <UserIcon size={12} className="text-gray-400 print:hidden" />}
                                <p className="font-black text-gray-900 dark:text-gray-100 text-xs print:text-black">{item.name}</p>
+                               <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-900/50 dark:border-indigo-800 dark:text-indigo-300 print:border-black print:text-black">رب أسرة</span>
                             </div>
                             <div className="flex flex-col mt-0.5">
                                <span className="text-[10px] font-bold font-mono text-gray-500 print:text-black">{item.nationalId}</span>
@@ -451,12 +467,23 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                       </td>
 
                       <td className="px-3 py-3">
-                         <div className="flex flex-wrap gap-1">
-                           {item.categoryIds?.map(catId => (
-                             <span key={catId} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 print:border print:border-black print:bg-white print:text-black border border-transparent whitespace-nowrap">
-                               {categories.find(c => c.id === catId)?.name || '---'}
-                             </span>
-                           ))}
+                         <div className="flex flex-col gap-1">
+                           <div className="flex flex-wrap gap-1">
+                             {item.categoryIds?.map(catId => (
+                               <span key={catId} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 print:border print:border-black print:bg-white print:text-black border border-transparent whitespace-nowrap">
+                                 {categories.find(c => c.id === catId)?.name || '---'}
+                               </span>
+                             ))}
+                           </div>
+                           {item.healthConditions && item.healthConditions.length > 0 && (
+                             <div className="flex flex-wrap gap-1 mt-1">
+                               {item.healthConditions.map((cond, idx) => (
+                                 <span key={idx} className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400 print:border-black print:bg-white print:text-black whitespace-nowrap">
+                                   {cond}
+                                 </span>
+                               ))}
+                             </div>
+                           )}
                          </div>
                       </td>
 
@@ -476,13 +503,23 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                     {(expandedFamilies.includes(item.id) || window.matchMedia('print').matches) && item.children.map(child => (
                       <tr key={child.id} className="bg-white dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors print:bg-white">
                         <td className="px-4 py-2 relative">
-                           {/* Tree Connector */}
-                           <div className="absolute right-6 top-0 bottom-1/2 w-3 border-r border-b border-gray-300 rounded-br-lg print:border-black"></div>
+                           {/* Improved Tree Visuals */}
+                           <div className="absolute right-6 top-0 h-full w-px bg-gray-200 dark:bg-gray-700 print:bg-black"></div>
+                           <div className="absolute right-6 top-1/2 w-4 h-px bg-gray-200 dark:bg-gray-700 print:bg-black"></div>
                            
-                           <div className="mr-8 flex items-start gap-1.5">
-                             <CornerDownRight size={12} className="text-gray-300 mt-1 print:hidden" />
+                           <div className="mr-10 flex items-start gap-1.5">
+                             <div className="mt-0.5 text-gray-300 dark:text-gray-600 print:hidden">
+                               <CornerDownRight size={14} />
+                             </div>
                              <div>
-                               <p className="font-bold text-gray-700 dark:text-gray-300 text-[11px] print:text-black">{child.name}</p>
+                               <div className="flex items-center gap-2">
+                                  <p className="font-bold text-gray-700 dark:text-gray-300 text-[11px] print:text-black">{child.name}</p>
+                                  {child.kinshipRelation && (
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 print:border-black print:text-black whitespace-nowrap">
+                                       {child.kinshipRelation}
+                                    </span>
+                                  )}
+                               </div>
                                <span className="text-[9px] font-mono text-gray-400 print:text-black block">{child.nationalId}</span>
                              </div>
                            </div>
@@ -509,15 +546,25 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                         </td>
 
                         <td className="px-3 py-2">
-                           {child.categoryIds?.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                 {child.categoryIds.map(catId => (
-                                    <span key={catId} className="text-[9px] text-gray-500 print:text-black">
-                                       {categories.find(c => c.id === catId)?.name}
-                                    </span>
+                           <div className="flex flex-col gap-1">
+                             <div className="flex flex-wrap gap-1">
+                               {child.categoryIds?.map(catId => (
+                                  <span key={catId} className="text-[9px] text-gray-500 print:text-black bg-gray-50 dark:bg-gray-800 px-1 rounded border border-gray-100 dark:border-gray-700 print:border-black">
+                                     {categories.find(c => c.id === catId)?.name}
+                                  </span>
+                               ))}
+                             </div>
+                             {child.healthConditions && child.healthConditions.length > 0 && (
+                               <div className="flex flex-wrap gap-1">
+                                 {child.healthConditions.map((cond, idx) => (
+                                   <span key={idx} className="text-[8px] text-rose-500 print:text-black bg-rose-50 dark:bg-rose-900/10 px-1 rounded border border-rose-100 dark:border-rose-900/20 print:border-black">
+                                     {cond}
+                                   </span>
                                  ))}
-                              </div>
-                           ) : <span className="text-[9px] text-gray-300">---</span>}
+                               </div>
+                             )}
+                           </div>
+                           {!child.categoryIds?.length && !child.healthConditions?.length && <span className="text-[9px] text-gray-300">---</span>}
                         </td>
 
                         <td className="px-3 py-2">
@@ -539,7 +586,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 filteredBeneficiaries.map(b => (
                    <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:bg-white">
                       <td className="px-4 py-3">
-                         <p className="font-black text-gray-800 dark:text-gray-200 text-xs print:text-black">{b.name}</p>
+                         <div className="flex items-center gap-2">
+                            <p className="font-black text-gray-800 dark:text-gray-200 text-xs print:text-black">{b.name}</p>
+                            {b.type === BeneficiaryType.FAMILY_MEMBER && b.kinshipRelation && (
+                               <span className="text-[8px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 print:border-black print:text-black">
+                                  {b.kinshipRelation}
+                               </span>
+                            )}
+                         </div>
                          <div className="flex flex-col mt-0.5">
                             <span className="text-[10px] text-gray-500 font-mono font-bold print:text-black">{b.nationalId}</span>
                             {b.phone && <span className="text-[10px] text-gray-400 font-mono print:text-black">{b.phone}</span>}
@@ -561,12 +615,23 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                          <span className="text-[10px] text-gray-500 print:text-black block max-w-[150px] leading-tight">{b.address}</span>
                       </td>
                       <td className="px-3 py-3">
-                         <div className="flex flex-wrap gap-1">
-                           {b.categoryIds?.map(catId => (
-                             <span key={catId} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 print:border print:border-black print:bg-white print:text-black border border-transparent whitespace-nowrap">
-                               {categories.find(c => c.id === catId)?.name || '---'}
-                             </span>
-                           ))}
+                         <div className="flex flex-col gap-1">
+                           <div className="flex flex-wrap gap-1">
+                             {b.categoryIds?.map(catId => (
+                               <span key={catId} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 print:border print:border-black print:bg-white print:text-black border border-transparent whitespace-nowrap">
+                                 {categories.find(c => c.id === catId)?.name || '---'}
+                               </span>
+                             ))}
+                           </div>
+                           {b.healthConditions && b.healthConditions.length > 0 && (
+                             <div className="flex flex-wrap gap-1">
+                               {b.healthConditions.map((cond, idx) => (
+                                 <span key={idx} className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400 print:border-black print:bg-white print:text-black whitespace-nowrap">
+                                   {cond}
+                                 </span>
+                               ))}
+                             </div>
+                           )}
                          </div>
                       </td>
                       <td className="px-3 py-3">
@@ -586,20 +651,6 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         </div>
         
         {/* Dynamic Print Signatures */}
-        <div className="hidden print:flex mt-10 justify-between px-10 font-bold break-inside-avoid">
-           <div className="text-center">
-              <p>{printSettings.footerRight}</p>
-              <div className="mt-8 border-b border-black w-40 mx-auto"></div>
-           </div>
-           <div className="text-center">
-              <p>{printSettings.footerLeft}</p>
-              <div className="mt-8 border-b border-black w-40 mx-auto"></div>
-           </div>
-           <div className="text-center">
-              <p>ختم الجمعية</p>
-              <div className="mt-6 border-2 border-black border-dashed rounded-full w-20 h-20 mx-auto opacity-20 flex items-center justify-center text-xs">ختم</div>
-           </div>
-        </div>
       </div>
 
       {/* --- Print Settings Modal --- */}
@@ -719,7 +770,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                            type="button" 
                            onClick={() => {
                              setIsLinkingFamily(!isLinkingFamily);
-                             if (!isLinkingFamily) setFormData({...formData, familyId: ''});
+                             if (!isLinkingFamily) setFormData({...formData, familyId: '', kinshipRelation: ''});
                            }}
                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isLinkingFamily ? 'bg-indigo-600 text-white shadow-md' : 'bg-white dark:bg-gray-800 text-indigo-600 border border-indigo-100 dark:border-indigo-900/50'}`}
                          >
@@ -792,8 +843,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                                                   setFormData({
                                                      ...formData, 
                                                      familyId: head.id,
-                                                     regionId: head.regionId || formData.regionId, // Auto-match region
-                                                     address: head.address || formData.address // Auto-match address
+                                                     regionId: head.regionId || formData.regionId, 
+                                                     address: head.address || formData.address 
                                                   });
                                                   setFamilySearchQuery('');
                                                 }}
@@ -822,6 +873,25 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                                   )}
                                </div>
                             )}
+
+                            {/* Kinship Relation Selector */}
+                            <div className="animate-in fade-in duration-300">
+                               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">صلة القرابة برب الأسرة</label>
+                               <div className="relative">
+                                  <Baby size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                  <select 
+                                    className="w-full pr-12 pl-4 py-3.5 bg-white dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm font-bold shadow-sm"
+                                    value={formData.kinshipRelation}
+                                    onChange={e => setFormData({...formData, kinshipRelation: e.target.value})}
+                                  >
+                                    <option value="">اختر صلة القرابة</option>
+                                    {KINSHIP_RELATIONS.map(rel => (
+                                       <option key={rel} value={rel}>{rel}</option>
+                                    ))}
+                                  </select>
+                               </div>
+                               {errors.kinshipRelation && <p className="text-[10px] text-red-500 mt-1 mr-1 font-bold">{errors.kinshipRelation}</p>}
+                            </div>
                          </div>
                       )}
                    </div>
@@ -907,6 +977,47 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                       )
                     })}
                   </div>
+                </div>
+
+                {/* Health Conditions Section - Highlighted if relevant category selected */}
+                <div className={`md:col-span-2 p-6 rounded-3xl border transition-all duration-300 space-y-4 ${
+                  isHealthConditionRelevant 
+                    ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 shadow-md ring-2 ring-rose-500/20' 
+                    : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'
+                }`}>
+                   <div className="flex items-center justify-between">
+                      <h4 className={`text-xs font-black flex items-center gap-2 ${isHealthConditionRelevant ? 'text-rose-600 dark:text-rose-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <Activity size={16} /> الحالة الصحية وتفاصيل الإعاقة (إن وجد)
+                      </h4>
+                      {isHealthConditionRelevant && (
+                        <span className="text-[10px] bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-300 px-2 py-1 rounded-full font-bold flex items-center gap-1 animate-pulse">
+                           <AlertCircle size={10} /> يوصى بالتحديد
+                        </span>
+                      )}
+                   </div>
+                   
+                   <div className="flex flex-wrap gap-2">
+                      {healthConditions.map(condition => {
+                         const isSelected = formData.healthConditions.includes(condition.name);
+                         return (
+                            <button
+                               key={condition.id} type="button"
+                               onClick={() => {
+                                  const newConditions = isSelected 
+                                     ? formData.healthConditions.filter(c => c !== condition.name)
+                                     : [...formData.healthConditions, condition.name];
+                                  setFormData({...formData, healthConditions: newConditions});
+                               }}
+                               className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${isSelected ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 hover:border-rose-200'}`}
+                            >
+                               {condition.name}
+                            </button>
+                         )
+                      })}
+                      {healthConditions.length === 0 && (
+                        <p className="text-xs text-gray-400 italic w-full text-center">لا توجد أنواع أمراض مضافة في النظام.</p>
+                      )}
+                   </div>
                 </div>
 
                 <div>

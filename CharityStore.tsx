@@ -28,7 +28,7 @@ export enum BeneficiaryType {
   FAMILY_MEMBER = 'فرد تابع لأسرة'
 }
 
-// Educational Levels based on Egyptian System
+// Educational Levels
 export const EDUCATION_LEVELS = [
   'غير ملتحق',
   'حضانة 1 (KG1)',
@@ -54,7 +54,23 @@ export const EDUCATION_LEVELS = [
   'خريج'
 ];
 
+// Kinship Relations
+export const KINSHIP_RELATIONS = [
+  'زوج / زوجة',
+  'ابن / ابنة',
+  'أخ / أخت',
+  'والد / والدة',
+  'حفيد / حفيدة',
+  'جد / جدة',
+  'قرابة أخرى'
+];
+
 export interface BeneficiaryCategory {
+  id: string;
+  name: string;
+}
+
+export interface HealthCondition {
   id: string;
   name: string;
 }
@@ -97,6 +113,8 @@ export interface Beneficiary {
   type: BeneficiaryType;
   categoryIds: string[]; 
   familyId?: string;
+  kinshipRelation?: string; 
+  healthConditions?: string[]; // Stores names of conditions
   educationLevel?: string;
   schoolName?: string;
   createdAt: string;
@@ -131,6 +149,23 @@ const INITIAL_CATEGORIES: BeneficiaryCategory[] = [
   { id: 'cat5', name: 'غارمين' },
   { id: 'cat6', name: 'مطلقة' },
   { id: 'cat7', name: 'مرضى' },
+];
+
+const INITIAL_HEALTH_CONDITIONS: HealthCondition[] = [
+  { id: 'hc1', name: 'بتر في الساقين' },
+  { id: 'hc2', name: 'بتر في اليدين' },
+  { id: 'hc3', name: 'شلل أطفال' },
+  { id: 'hc4', name: 'شلل نصفي' },
+  { id: 'hc5', name: 'شلل رباعي' },
+  { id: 'hc6', name: 'كفيف / ضعف بصر شديد' },
+  { id: 'hc7', name: 'صمم / بكم' },
+  { id: 'hc8', name: 'ضمور عضلات' },
+  { id: 'hc9', name: 'تخلف عقلي' },
+  { id: 'hc10', name: 'مرض قلب مزمن' },
+  { id: 'hc11', name: 'فشل كلوي' },
+  { id: 'hc12', name: 'أورام سرطانية' },
+  { id: 'hc13', name: 'مرض مناعي' },
+  { id: 'hc14', name: 'سليم صحياً' }
 ];
 
 const INITIAL_BRANCHES: Branch[] = [
@@ -171,18 +206,110 @@ const INITIAL_PRINT_SETTINGS: PrintSettings = {
 const generateMockBeneficiaries = (): Beneficiary[] => {
   const data: Beneficiary[] = [];
   const firstNames = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'يوسف', 'عبد الله', 'خالد', 'عمر', 'سعيد', 'كريم', 'حسن', 'حسين'];
+  const femaleNames = ['فاطمة', 'زينب', 'مريم', 'عائشة', 'نور', 'سلمى', 'هبة', 'منى', 'سارة', 'هدى'];
   const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي', 'سالم', 'صلاح'];
 
   const rnd = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+  const rndCondition = () => INITIAL_HEALTH_CONDITIONS[Math.floor(Math.random() * INITIAL_HEALTH_CONDITIONS.length)].name;
   
+  // 1. Create 25 Family Heads (distributed across branches)
+  for (let i = 0; i < 25; i++) {
+    const headId = `head_${i+1}`;
+    const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
+    const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
+    
+    // Assign 1 or 2 categories
+    const cat1 = INITIAL_CATEGORIES[i % INITIAL_CATEGORIES.length].id;
+    const cat2 = INITIAL_CATEGORIES[(i + 2) % INITIAL_CATEGORIES.length].id;
+    const categoryIds = i % 3 === 0 ? [cat1, cat2] : [cat1];
+
+    const address = `شارع ${rnd(['التحرير', 'النصر', 'الجمهورية', 'الثورة', 'النيل'])}، رقم ${Math.floor(Math.random() * 50) + 1}`;
+    
+    const firstName = rnd(firstNames);
+    const fatherName = rnd(firstNames);
+    const grandFatherName = rnd(firstNames);
+    const familyName = rnd(lastNames);
+    const headName = `${firstName} ${fatherName} ${grandFatherName} ${familyName}`;
+
+    const createdAt = new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString();
+    const status = Math.random() > 0.1 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
+
+    const hasHealthIssue = Math.random() > 0.7;
+    const healthConditions = hasHealthIssue ? [rndCondition()] : [];
+
+    // Create Head
+    data.push({
+      id: headId,
+      name: headName,
+      nationalId: `2${Math.floor(70 + Math.random() * 20)}0101${10000 + i}`,
+      phone: `010${Math.floor(Math.random() * 100000000)}`,
+      address: address,
+      birthDate: `${1970 + Math.floor(Math.random() * 20)}-05-15`,
+      gender: Gender.MALE,
+      branchId: branch.id,
+      regionId: region.id,
+      status: status,
+      sponsorshipStatus: SponsorshipStatus.NOT_SPONSORED,
+      type: BeneficiaryType.FAMILY_HEAD,
+      categoryIds: categoryIds,
+      healthConditions: healthConditions,
+      createdAt: createdAt
+    });
+
+    // 2. Add 2-5 Members for each Family
+    const numMembers = Math.floor(Math.random() * 4) + 2; 
+    for (let j = 1; j <= numMembers; j++) {
+      const isFemale = Math.random() > 0.5;
+      const childFirstName = isFemale ? rnd(femaleNames) : rnd(firstNames);
+      const childName = `${childFirstName} ${firstName} ${fatherName} ${familyName}`;
+      
+      const birthYear = 2005 + Math.floor(Math.random() * 15);
+      
+      // Determine Relation
+      let relation = 'ابن / ابنة';
+      if (j === 1 && isFemale && birthYear < 1990) relation = 'زوج / زوجة';
+
+      const childHealthConditions = Math.random() > 0.8 ? [rndCondition()] : [];
+
+      data.push({
+        id: `mem_${i}_${j}`,
+        name: childName,
+        nationalId: `3${birthYear.toString().substring(2)}0101${20000 + (i*100) + j}`,
+        phone: '', 
+        address: address,
+        birthDate: `${birthYear}-01-01`,
+        gender: isFemale ? Gender.FEMALE : Gender.MALE,
+        branchId: branch.id,
+        regionId: region.id,
+        status: status, 
+        sponsorshipStatus: Math.random() > 0.7 ? SponsorshipStatus.SPONSORED : SponsorshipStatus.NOT_SPONSORED,
+        type: BeneficiaryType.FAMILY_MEMBER,
+        categoryIds: categoryIds, 
+        familyId: headId,
+        kinshipRelation: relation,
+        healthConditions: childHealthConditions,
+        educationLevel: rnd(EDUCATION_LEVELS),
+        createdAt: createdAt
+      });
+    }
+  }
+
+  // 3. Add 15 Independent Individuals
   for (let i = 0; i < 15; i++) {
     const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
     const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
     const catId = INITIAL_CATEGORIES[Math.floor(Math.random() * INITIAL_CATEGORIES.length)].id;
     
+    const firstName = rnd(firstNames);
+    const fatherName = rnd(firstNames);
+    const familyName = rnd(lastNames);
+    const name = `${firstName} ${fatherName} ${familyName}`;
+    const status = Math.random() > 0.2 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
+    const indHealthConditions = Math.random() > 0.6 ? [rndCondition()] : [];
+
     data.push({
       id: `ind_${i+1}`,
-      name: `${rnd(firstNames)} ${rnd(firstNames)} ${rnd(lastNames)}`,
+      name: name,
       nationalId: `2850909${30000 + i}`,
       phone: `012${Math.floor(Math.random() * 100000000)}`,
       address: `منطقة ${region.name}، شارع جانبي`,
@@ -190,12 +317,12 @@ const generateMockBeneficiaries = (): Beneficiary[] => {
       gender: Gender.MALE,
       branchId: branch.id,
       regionId: region.id,
-      status: BeneficiaryStatus.ACTIVE,
+      status: status,
       sponsorshipStatus: Math.random() > 0.5 ? SponsorshipStatus.SPONSORED : SponsorshipStatus.NOT_SPONSORED,
       type: BeneficiaryType.INDIVIDUAL,
       categoryIds: [catId],
+      healthConditions: indHealthConditions,
       educationLevel: rnd(EDUCATION_LEVELS),
-      schoolName: 'مدرسة النهضة الحديثة',
       createdAt: new Date().toISOString()
     });
   }
@@ -211,6 +338,7 @@ interface StoreContextType {
   users: User[];
   beneficiaries: Beneficiary[];
   categories: BeneficiaryCategory[];
+  healthConditions: HealthCondition[];
   logs: AuditLog[];
   isDarkMode: boolean;
   printSettings: PrintSettings;
@@ -219,6 +347,7 @@ interface StoreContextType {
   saveUsers: (data: User[]) => void;
   setBeneficiaries: (data: Beneficiary[]) => void;
   setCategories: (data: BeneficiaryCategory[]) => void;
+  setHealthConditions: (data: HealthCondition[]) => void;
   addLog: (user: User, action: string, entityType: string, entityId: string) => void;
   toggleDarkMode: () => void;
   resetToSeedData: () => void;
@@ -247,6 +376,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [categories, setCategoriesState] = useState<BeneficiaryCategory[]>(() => {
     const item = localStorage.getItem('categories');
     return item ? JSON.parse(item) : INITIAL_CATEGORIES;
+  });
+  const [healthConditions, setHealthConditionsState] = useState<HealthCondition[]>(() => {
+    const item = localStorage.getItem('healthConditions');
+    return item ? JSON.parse(item) : INITIAL_HEALTH_CONDITIONS;
   });
   const [logs, setLogsState] = useState<AuditLog[]>(() => {
     const item = localStorage.getItem('audit_logs');
@@ -283,6 +416,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setCategories = (data: BeneficiaryCategory[]) => {
     setCategoriesState(data);
     localStorage.setItem('categories', JSON.stringify(data));
+  };
+
+  const setHealthConditions = (data: HealthCondition[]) => {
+    setHealthConditionsState(data);
+    localStorage.setItem('healthConditions', JSON.stringify(data));
   };
 
   const addLog = (user: User, action: string, entityType: string, entityId: string) => {
@@ -322,8 +460,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      branches, regions, users, beneficiaries, categories, logs, isDarkMode, printSettings,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, addLog, toggleDarkMode, resetToSeedData, setPrintSettings
+      branches, regions, users, beneficiaries, categories, healthConditions, logs, isDarkMode, printSettings,
+      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, addLog, toggleDarkMode, resetToSeedData, setPrintSettings
     }}>
       {children}
     </StoreContext.Provider>
