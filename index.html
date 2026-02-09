@@ -28,62 +28,49 @@
         @media print {
             @page {
                 size: A4 landscape;
-                margin: 10mm;
-                counter-increment: page;
+                margin: 5mm; /* Maximize paper usage */
             }
             
-            /* FORCE COLORS TO PRINT WITHOUT CHECKING 'BACKGROUND GRAPHICS' */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                color-adjust: exact !important;
             }
 
-            /* --- FIX BLACK SCREEN & DARK MODE ISSUES --- */
             html, body {
                 background-color: white !important;
                 color: black !important;
                 height: auto !important;
+                width: 100% !important;
                 overflow: visible !important;
-                font-size: 10pt;
+                font-size: 9pt;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
-            /* Remove backdrop filters and overlays which look like black screens */
-            .backdrop-blur-sm, .modal-overlay, .bg-black\/60 {
-                backdrop-filter: none !important;
-                background: none !important;
-                display: none !important; /* Ensure modals don't block print */
-            }
-
-            /* Override all dark backgrounds to white/transparent */
-            .dark, .dark\:bg-gray-800, .dark\:bg-gray-900, .bg-gray-800, .bg-gray-900 {
+            .dark, .dark\:bg-gray-800, .bg-gray-800 {
                 background-color: white !important;
                 color: black !important;
-                border-color: #ddd !important;
             }
 
-            /* Hide UI elements */
-            aside, header, nav, button, .print-hidden, .no-print { 
+            /* Hide unwanted elements */
+            aside, header, nav, button, .print-hidden, .no-print, .shadow-lg, .shadow-xl { 
                 display: none !important; 
             }
 
-            /* Reset container widths */
+            /* Main Container */
             #root, main, .print-area {
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 display: block !important;
-                position: static !important;
-                overflow: visible !important;
             }
 
-            /* Table Styles for Print */
+            /* Compact Table */
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
                 border: 1px solid #000 !important;
-                margin-top: 10px !important;
-                margin-bottom: 20px !important;
+                margin-top: 5px !important;
             }
             
             thead { display: table-header-group; }
@@ -92,47 +79,19 @@
 
             th, td {
                 border: 1px solid #000 !important;
-                padding: 4px 8px !important;
+                padding: 2px 4px !important;
                 text-align: right !important;
                 color: black !important;
+                font-size: 8pt !important;
             }
 
             th {
-                background-color: #f3f4f6 !important; /* Light gray header */
-                color: black !important;
+                background-color: #eee !important;
                 font-weight: bold !important;
             }
-
-            /* Fix Shadow Issues */
-            .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl {
-                box-shadow: none !important;
-            }
-
-            /* --- PAGE NUMBERING FOOTER --- */
-            .print-footer {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                height: 10mm;
-                display: flex !important;
-                justify-content: space-between;
-                align-items: center;
-                border-top: 1px solid #ccc;
-                font-size: 10px;
-                padding-top: 5px;
-                background: white;
-            }
             
-            /* Page Number Logic */
-            .page-number::after {
-                content: "صفحة " counter(page);
-            }
-
-            /* Add padding to body bottom to prevent content overlapping footer */
-            body {
-                padding-bottom: 15mm !important;
-            }
+            /* Remove custom page numbering that was causing "0" error */
+            .page-number, .print-footer { display: none !important; }
         }
     </style>
     <script>
@@ -165,7 +124,7 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="./assets/index-DL4TRW2t.js"></script>
+  <script type="module" crossorigin src="./assets/index-MxN2buB3.js"></script>
 </head>
 <body>
     <div id="root"></div>
