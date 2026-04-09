@@ -362,98 +362,172 @@ interface StoreContextType {
   logs: AuditLog[];
   isDarkMode: boolean;
   printSettings: PrintSettings;
-  setBranches: (data: Branch[]) => void;
-  setRegions: (data: Region[]) => void;
-  saveUsers: (data: User[]) => void;
-  setBeneficiaries: (data: Beneficiary[]) => void;
-  setCategories: (data: BeneficiaryCategory[]) => void;
-  setHealthConditions: (data: HealthCondition[]) => void;
-  setSponsors: (data: Sponsor[]) => void;
-  addLog: (user: User, action: string, entityType: string, entityId: string) => void;
+  isLoading: boolean;
+  setBranches: (data: Branch[]) => Promise<void>;
+  setRegions: (data: Region[]) => Promise<void>;
+  saveUsers: (data: User[]) => Promise<void>;
+  setBeneficiaries: (data: Beneficiary[]) => Promise<void>;
+  setCategories: (data: BeneficiaryCategory[]) => Promise<void>;
+  setHealthConditions: (data: HealthCondition[]) => Promise<void>;
+  setSponsors: (data: Sponsor[]) => Promise<void>;
+  addLog: (user: User, action: string, entityType: string, entityId: string) => Promise<void>;
   toggleDarkMode: () => void;
   resetToSeedData: () => void;
-  setPrintSettings: (settings: PrintSettings) => void;
+  setPrintSettings: (settings: PrintSettings) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [branches, setBranchesState] = useState<Branch[]>(() => {
-    const item = localStorage.getItem('branches');
-    return item ? JSON.parse(item) : INITIAL_BRANCHES;
-  });
-  const [regions, setRegionsState] = useState<Region[]>(() => {
-    const item = localStorage.getItem('regions');
-    return item ? JSON.parse(item) : INITIAL_REGIONS;
-  });
-  const [users, setUsersState] = useState<User[]>(() => {
-    const item = localStorage.getItem('users');
-    return item ? JSON.parse(item) : INITIAL_USERS;
-  });
-  const [beneficiaries, setBeneficiariesState] = useState<Beneficiary[]>(() => {
-    const item = localStorage.getItem('beneficiaries');
-    return item ? JSON.parse(item) : INITIAL_BENEFICIARIES;
-  });
-  const [categories, setCategoriesState] = useState<BeneficiaryCategory[]>(() => {
-    const item = localStorage.getItem('categories');
-    return item ? JSON.parse(item) : INITIAL_CATEGORIES;
-  });
-  const [healthConditions, setHealthConditionsState] = useState<HealthCondition[]>(() => {
-    const item = localStorage.getItem('healthConditions');
-    return item ? JSON.parse(item) : INITIAL_HEALTH_CONDITIONS;
-  });
-  const [sponsors, setSponsorsState] = useState<Sponsor[]>(() => {
-    const item = localStorage.getItem('sponsors');
-    return item ? JSON.parse(item) : INITIAL_SPONSORS;
-  });
-  const [logs, setLogsState] = useState<AuditLog[]>(() => {
-    const item = localStorage.getItem('audit_logs');
-    return item ? JSON.parse(item) : [];
-  });
+  const [branches, setBranchesState] = useState<Branch[]>([]);
+  const [regions, setRegionsState] = useState<Region[]>([]);
+  const [users, setUsersState] = useState<User[]>([]);
+  const [beneficiaries, setBeneficiariesState] = useState<Beneficiary[]>([]);
+  const [categories, setCategoriesState] = useState<BeneficiaryCategory[]>([]);
+  const [healthConditions, setHealthConditionsState] = useState<HealthCondition[]>([]);
+  const [sponsors, setSponsorsState] = useState<Sponsor[]>([]);
+  const [logs, setLogsState] = useState<AuditLog[]>([]);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark';
   });
-  const [printSettings, setPrintSettingsState] = useState<PrintSettings>(() => {
-    const item = localStorage.getItem('print_settings');
-    return item ? JSON.parse(item) : INITIAL_PRINT_SETTINGS;
-  });
+  const [printSettings, setPrintSettingsState] = useState<PrintSettings>(INITIAL_PRINT_SETTINGS);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const setBranches = (data: Branch[]) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [b, r, u, ben, cat, hc, sp, l, ps] = await Promise.all([
+          fetch('/api/branches').then(res => res.json()),
+          fetch('/api/regions').then(res => res.json()),
+          fetch('/api/users').then(res => res.json()),
+          fetch('/api/beneficiaries').then(res => res.json()),
+          fetch('/api/categories').then(res => res.json()),
+          fetch('/api/health_conditions').then(res => res.json()),
+          fetch('/api/sponsors').then(res => res.json()),
+          fetch('/api/audit_logs').then(res => res.json()),
+          fetch('/api/settings/print').then(res => res.json())
+        ]);
+
+        if (b && !b.error) setBranchesState(b);
+        if (r && !r.error) setRegionsState(r);
+        if (u && !u.error) setUsersState(u);
+        if (ben && !ben.error) setBeneficiariesState(ben);
+        if (cat && !cat.error) setCategoriesState(cat);
+        if (hc && !hc.error) setHealthConditionsState(hc);
+        if (sp && !sp.error) setSponsorsState(sp);
+        if (l && !l.error) setLogsState(l);
+        if (ps && !ps.error) setPrintSettingsState(ps);
+
+        if (!b || b.length === 0 || b.error) {
+          console.log('No data found in API, using seed data');
+          setBranchesState(INITIAL_BRANCHES);
+          setRegionsState(INITIAL_REGIONS);
+          setUsersState(INITIAL_USERS);
+          setBeneficiariesState(INITIAL_BENEFICIARIES);
+          setCategoriesState(INITIAL_CATEGORIES);
+          setHealthConditionsState(INITIAL_HEALTH_CONDITIONS);
+          setSponsorsState(INITIAL_SPONSORS);
+        }
+      } catch (error) {
+        console.error('Error fetching data from API:', error);
+        // Fallback to localStorage
+        const localBranches = localStorage.getItem('branches');
+        if (localBranches) setBranchesState(JSON.parse(localBranches));
+        else setBranchesState(INITIAL_BRANCHES);
+        
+        const localRegions = localStorage.getItem('regions');
+        if (localRegions) setRegionsState(JSON.parse(localRegions));
+        else setRegionsState(INITIAL_REGIONS);
+
+        const localUsers = localStorage.getItem('users');
+        if (localUsers) setUsersState(JSON.parse(localUsers));
+        else setUsersState(INITIAL_USERS);
+
+        const localBeneficiaries = localStorage.getItem('beneficiaries');
+        if (localBeneficiaries) setBeneficiariesState(JSON.parse(localBeneficiaries));
+        else setBeneficiariesState(INITIAL_BENEFICIARIES);
+
+        const localCategories = localStorage.getItem('categories');
+        if (localCategories) setCategoriesState(JSON.parse(localCategories));
+        else setCategoriesState(INITIAL_CATEGORIES);
+
+        const localHealth = localStorage.getItem('healthConditions');
+        if (localHealth) setHealthConditionsState(JSON.parse(localHealth));
+        else setHealthConditionsState(INITIAL_HEALTH_CONDITIONS);
+
+        const localSponsors = localStorage.getItem('sponsors');
+        if (localSponsors) setSponsorsState(JSON.parse(localSponsors));
+        else setSponsorsState(INITIAL_SPONSORS);
+
+        const localLogs = localStorage.getItem('audit_logs');
+        if (localLogs) setLogsState(JSON.parse(localLogs));
+
+        const localPrint = localStorage.getItem('print_settings');
+        if (localPrint) setPrintSettingsState(JSON.parse(localPrint));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const apiUpsert = async (table: string, data: any) => {
+    try {
+      await fetch(`/api/${table}/upsert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } catch (err) {
+      console.error(`API Error (upsert ${table}):`, err);
+    }
+  };
+
+  const setBranches = async (data: Branch[]) => {
     setBranchesState(data);
     localStorage.setItem('branches', JSON.stringify(data));
+    await apiUpsert('branches', data);
   };
 
-  const setRegions = (data: Region[]) => {
+  const setRegions = async (data: Region[]) => {
     setRegionsState(data);
     localStorage.setItem('regions', JSON.stringify(data));
+    await apiUpsert('regions', data);
   };
 
-  const saveUsers = (data: User[]) => {
+  const saveUsers = async (data: User[]) => {
     setUsersState(data);
     localStorage.setItem('users', JSON.stringify(data));
+    await apiUpsert('users', data);
   };
 
-  const setBeneficiaries = (data: Beneficiary[]) => {
+  const setBeneficiaries = async (data: Beneficiary[]) => {
     setBeneficiariesState(data);
     localStorage.setItem('beneficiaries', JSON.stringify(data));
+    await apiUpsert('beneficiaries', data);
   };
 
-  const setCategories = (data: BeneficiaryCategory[]) => {
+  const setCategories = async (data: BeneficiaryCategory[]) => {
     setCategoriesState(data);
     localStorage.setItem('categories', JSON.stringify(data));
+    await apiUpsert('categories', data);
   };
 
-  const setHealthConditions = (data: HealthCondition[]) => {
+  const setHealthConditions = async (data: HealthCondition[]) => {
     setHealthConditionsState(data);
     localStorage.setItem('healthConditions', JSON.stringify(data));
+    await apiUpsert('health_conditions', data);
   };
 
-  const setSponsors = (data: Sponsor[]) => {
+  const setSponsors = async (data: Sponsor[]) => {
     setSponsorsState(data);
     localStorage.setItem('sponsors', JSON.stringify(data));
+    await apiUpsert('sponsors', data);
   };
 
-  const addLog = (user: User, action: string, entityType: string, entityId: string) => {
+  const addLog = async (user: User, action: string, entityType: string, entityId: string) => {
     const newLog: AuditLog = {
       id: Math.random().toString(36).substring(2, 11),
       userId: user.id,
@@ -463,11 +537,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       entityId: entityId,
       timestamp: new Date().toISOString()
     };
-    setLogsState((prev) => {
-      const updated = [newLog, ...prev];
-      localStorage.setItem('audit_logs', JSON.stringify(updated));
-      return updated;
-    });
+    setLogsState((prev) => [newLog, ...prev]);
+    try {
+      await fetch('/api/audit_logs/insert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLog)
+      });
+    } catch (err) {
+      console.error('API Error (log):', err);
+    }
   };
 
   const toggleDarkMode = () => {
@@ -478,9 +557,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  const setPrintSettings = (settings: PrintSettings) => {
+  const setPrintSettings = async (settings: PrintSettings) => {
     setPrintSettingsState(settings);
     localStorage.setItem('print_settings', JSON.stringify(settings));
+    await apiUpsert('print_settings', { id: 'default', ...settings });
   };
 
   const resetToSeedData = () => {
@@ -490,7 +570,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      branches, regions, users, beneficiaries, categories, healthConditions, sponsors, logs, isDarkMode, printSettings,
+      branches, regions, users, beneficiaries, categories, healthConditions, sponsors, logs, isDarkMode, printSettings, isLoading,
       setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, setSponsors, addLog, toggleDarkMode, resetToSeedData, setPrintSettings
     }}>
       {children}

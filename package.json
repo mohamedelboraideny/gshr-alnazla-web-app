@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "tsx server.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
@@ -14,18 +14,23 @@
     "deploy": "npm run clean-gh-pages && gh-pages -d dist"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "lucide-react": "^0.378.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.23.1"
+    "react-router-dom": "^6.23.1",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.1",
     "gh-pages": "^6.1.1",
-    "typescript": "^5.9.3",
-    "vite": "^5.4.21"
+    "typescript": "^5.4.5",
+    "vite": "^5.3.1"
   }
 }

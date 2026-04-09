@@ -12,10 +12,11 @@ import Regions from './pages/Regions';
 import Reports from './pages/Reports';
 import Statuses from './pages/Statuses';
 import Sponsors from './pages/Sponsors';
-import { User, StoreProvider } from './CharityStore';
+import { User, StoreProvider, useStore } from './CharityStore';
 
 const AuthGate: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const { isLoading } = useStore();
 
   useEffect(() => {
     const saved = localStorage.getItem('logged_user');
@@ -31,6 +32,17 @@ const AuthGate: React.FC = () => {
     setUser(null);
     localStorage.removeItem('logged_user');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 dark:text-gray-400 font-bold animate-pulse">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Login onLogin={handleLogin} />;
