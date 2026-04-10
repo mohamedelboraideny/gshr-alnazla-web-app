@@ -153,65 +153,7 @@ export interface PrintSettings {
   showBranch: boolean;
 }
 
-// --- Seed Data Generation ---
-const INITIAL_CATEGORIES: BeneficiaryCategory[] = [
-  { id: 'cat1', name: 'فقراء' },
-  { id: 'cat2', name: 'أيتام' },
-  { id: 'cat3', name: 'أرملة' },
-  { id: 'cat4', name: 'ذوي احتياجات خاصة' },
-  { id: 'cat5', name: 'غارمين' },
-  { id: 'cat6', name: 'مطلقة' },
-  { id: 'cat7', name: 'مرضى' },
-];
-
-const INITIAL_HEALTH_CONDITIONS: HealthCondition[] = [
-  { id: 'hc1', name: 'بتر في الساقين' },
-  { id: 'hc2', name: 'بتر في اليدين' },
-  { id: 'hc3', name: 'شلل أطفال' },
-  { id: 'hc4', name: 'شلل نصفي' },
-  { id: 'hc5', name: 'شلل رباعي' },
-  { id: 'hc6', name: 'كفيف / ضعف بصر شديد' },
-  { id: 'hc7', name: 'صمم / بكم' },
-  { id: 'hc8', name: 'ضمور عضلات' },
-  { id: 'hc9', name: 'تخلف عقلي' },
-  { id: 'hc10', name: 'مرض قلب مزمن' },
-  { id: 'hc11', name: 'فشل كلوي' },
-  { id: 'hc12', name: 'أورام سرطانية' },
-  { id: 'hc13', name: 'مرض مناعي' },
-  { id: 'hc14', name: 'سليم صحياً' }
-];
-
-const INITIAL_BRANCHES: Branch[] = [
-  { id: 'b1', name: 'المركز الرئيسي - القاهرة', location: 'وسط البلد، القاهرة', createdAt: '2023-01-01' },
-  { id: 'b2', name: 'فرع الجيزة', location: 'الدقي، الجيزة', createdAt: '2023-02-15' },
-  { id: 'b3', name: 'فرع الإسكندرية', location: 'سموحة، الإسكندرية', createdAt: '2023-03-10' },
-  { id: 'b4', name: 'فرع أسوان', location: 'أسوان الجديدة', createdAt: '2023-05-20' },
-  { id: 'b5', name: 'فرع طنطا', location: 'ميدان المحطة، طنطا', createdAt: '2023-06-01' },
-];
-
-const INITIAL_REGIONS: Region[] = [
-  { id: 'r1', name: 'السيدة زينب', branchId: 'b1' },
-  { id: 'r2', name: 'الحسين', branchId: 'b1' },
-  { id: 'r3', name: 'العجوزة', branchId: 'b2' },
-  { id: 'r4', name: 'فيصل', branchId: 'b2' },
-  { id: 'r5', name: 'المنتزة', branchId: 'b3' },
-  { id: 'r6', name: 'سيدي بشر', branchId: 'b3' },
-  { id: 'r7', name: 'حي الصداقة', branchId: 'b4' },
-  { id: 'r8', name: 'سيجر', branchId: 'b5' },
-];
-
-const INITIAL_USERS: User[] = [
-  { id: 'u1', name: 'أحمد الإدريسي', username: 'admin', password: '123', role: Role.ADMIN, branchId: 'b1', isFirstLogin: false },
-  { id: 'u2', name: 'سناء يوسف', username: 'manager', password: '123', role: Role.MANAGER, branchId: 'b2', isFirstLogin: false },
-  { id: 'u3', name: 'ياسر كمال', username: 'staff', password: '123', role: Role.STAFF, branchId: 'b3', isFirstLogin: false },
-];
-
-const INITIAL_SPONSORS: Sponsor[] = [
-  { id: 'sp1', name: 'الحاج محمد الطيب', phone: '01012345678', branchId: 'b1', amount: 5000, frequency: 'شهري', status: 'نشط', startDate: '2023-01-01', notes: 'فاعل خير معروف', createdAt: new Date().toISOString() },
-  { id: 'sp2', name: 'شركة النور للمقاولات', phone: '01298765432', branchId: 'b2', amount: 20000, frequency: 'سنوي', status: 'نشط', startDate: '2023-03-15', notes: 'زكاة مال', createdAt: new Date().toISOString() },
-  { id: 'sp3', name: 'د. سمير غانم', phone: '01111222333', branchId: 'b3', amount: 1000, frequency: 'شهري', status: 'متوقف', startDate: '2022-05-01', notes: 'كفالة أيتام', createdAt: new Date().toISOString() },
-];
-
+// --- Initial Defaults ---
 const INITIAL_PRINT_SETTINGS: PrintSettings = {
   title: 'الجمعية الشرعية الرئيسية',
   subtitle: 'لتعاون العاملين بالكتاب والسنة المحمدية',
@@ -221,135 +163,6 @@ const INITIAL_PRINT_SETTINGS: PrintSettings = {
   showUser: true,
   showBranch: true
 };
-
-const generateMockBeneficiaries = (): Beneficiary[] => {
-  const data: Beneficiary[] = [];
-  const firstNames = ['محمد', 'أحمد', 'محمود', 'علي', 'إبراهيم', 'مصطفى', 'ياسين', 'يوسف', 'عبد الله', 'خالد', 'عمر', 'سعيد', 'كريم', 'حسن', 'حسين'];
-  const femaleNames = ['فاطمة', 'زينب', 'مريم', 'عائشة', 'نور', 'سلمى', 'هبة', 'منى', 'سارة', 'هدى'];
-  const lastNames = ['الشافعي', 'السيد', 'العدوي', 'منصور', 'كامل', 'جلال', 'عبد النبي', 'غنيم', 'راضي', 'نجم', 'الفيومي', 'القاضي', 'العربي', 'سالم', 'صلاح'];
-
-  const rnd = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
-  const rndCondition = () => INITIAL_HEALTH_CONDITIONS[Math.floor(Math.random() * INITIAL_HEALTH_CONDITIONS.length)].name;
-  
-  // 1. Create 25 Family Heads (distributed across branches)
-  for (let i = 0; i < 25; i++) {
-    const headId = `head_${i+1}`;
-    const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
-    const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
-    
-    // Assign 1 or 2 categories
-    const cat1 = INITIAL_CATEGORIES[i % INITIAL_CATEGORIES.length].id;
-    const cat2 = INITIAL_CATEGORIES[(i + 2) % INITIAL_CATEGORIES.length].id;
-    const categoryIds = i % 3 === 0 ? [cat1, cat2] : [cat1];
-
-    const address = `شارع ${rnd(['التحرير', 'النصر', 'الجمهورية', 'الثورة', 'النيل'])}، رقم ${Math.floor(Math.random() * 50) + 1}`;
-    
-    const firstName = rnd(firstNames);
-    const fatherName = rnd(firstNames);
-    const grandFatherName = rnd(firstNames);
-    const familyName = rnd(lastNames);
-    const headName = `${firstName} ${fatherName} ${grandFatherName} ${familyName}`;
-
-    const createdAt = new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString();
-    const status = Math.random() > 0.1 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
-
-    const hasHealthIssue = Math.random() > 0.7;
-    const healthConditions = hasHealthIssue ? [rndCondition()] : [];
-
-    // Create Head
-    data.push({
-      id: headId,
-      name: headName,
-      nationalId: `2${Math.floor(70 + Math.random() * 20)}0101${10000 + i}`,
-      phone: `010${Math.floor(Math.random() * 100000000)}`,
-      address: address,
-      birthDate: `${1970 + Math.floor(Math.random() * 20)}-05-15`,
-      gender: Gender.MALE,
-      branchId: branch.id,
-      regionId: region.id,
-      status: status,
-      sponsorshipStatus: SponsorshipStatus.NOT_SPONSORED,
-      type: BeneficiaryType.FAMILY_HEAD,
-      categoryIds: categoryIds,
-      healthConditions: healthConditions,
-      createdAt: createdAt
-    });
-
-    // 2. Add 2-5 Members for each Family
-    const numMembers = Math.floor(Math.random() * 4) + 2; 
-    for (let j = 1; j <= numMembers; j++) {
-      const isFemale = Math.random() > 0.5;
-      const childFirstName = isFemale ? rnd(femaleNames) : rnd(firstNames);
-      const childName = `${childFirstName} ${firstName} ${fatherName} ${familyName}`;
-      
-      const birthYear = 2005 + Math.floor(Math.random() * 15);
-      
-      // Determine Relation
-      let relation = 'ابن / ابنة';
-      if (j === 1 && isFemale && birthYear < 1990) relation = 'زوج / زوجة';
-
-      const childHealthConditions = Math.random() > 0.8 ? [rndCondition()] : [];
-
-      data.push({
-        id: `mem_${i}_${j}`,
-        name: childName,
-        nationalId: `3${birthYear.toString().substring(2)}0101${20000 + (i*100) + j}`,
-        phone: '', 
-        address: address,
-        birthDate: `${birthYear}-01-01`,
-        gender: isFemale ? Gender.FEMALE : Gender.MALE,
-        branchId: branch.id,
-        regionId: region.id,
-        status: status, 
-        sponsorshipStatus: Math.random() > 0.7 ? SponsorshipStatus.SPONSORED : SponsorshipStatus.NOT_SPONSORED,
-        type: BeneficiaryType.FAMILY_MEMBER,
-        categoryIds: categoryIds, 
-        familyId: headId,
-        kinshipRelation: relation,
-        healthConditions: childHealthConditions,
-        educationLevel: rnd(EDUCATION_LEVELS),
-        createdAt: createdAt
-      });
-    }
-  }
-
-  // 3. Add 15 Independent Individuals
-  for (let i = 0; i < 15; i++) {
-    const branch = INITIAL_BRANCHES[i % INITIAL_BRANCHES.length];
-    const region = INITIAL_REGIONS.find(r => r.branchId === branch.id) || INITIAL_REGIONS[0];
-    const catId = INITIAL_CATEGORIES[Math.floor(Math.random() * INITIAL_CATEGORIES.length)].id;
-    
-    const firstName = rnd(firstNames);
-    const fatherName = rnd(firstNames);
-    const familyName = rnd(lastNames);
-    const name = `${firstName} ${fatherName} ${familyName}`;
-    const status = Math.random() > 0.2 ? BeneficiaryStatus.ACTIVE : BeneficiaryStatus.SUSPENDED;
-    const indHealthConditions = Math.random() > 0.6 ? [rndCondition()] : [];
-
-    data.push({
-      id: `ind_${i+1}`,
-      name: name,
-      nationalId: `2850909${30000 + i}`,
-      phone: `012${Math.floor(Math.random() * 100000000)}`,
-      address: `منطقة ${region.name}، شارع جانبي`,
-      birthDate: '1985-09-09',
-      gender: Gender.MALE,
-      branchId: branch.id,
-      regionId: region.id,
-      status: status,
-      sponsorshipStatus: Math.random() > 0.5 ? SponsorshipStatus.SPONSORED : SponsorshipStatus.NOT_SPONSORED,
-      type: BeneficiaryType.INDIVIDUAL,
-      categoryIds: [catId],
-      healthConditions: indHealthConditions,
-      educationLevel: rnd(EDUCATION_LEVELS),
-      createdAt: new Date().toISOString()
-    });
-  }
-
-  return data;
-};
-
-const INITIAL_BENEFICIARIES = generateMockBeneficiaries();
 
 interface StoreContextType {
   branches: Branch[];
@@ -397,17 +210,32 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [b, r, u, ben, cat, hc, sp, l, ps] = await Promise.all([
-          fetch('/api/branches').then(res => res.json()),
-          fetch('/api/regions').then(res => res.json()),
-          fetch('/api/users').then(res => res.json()),
-          fetch('/api/beneficiaries').then(res => res.json()),
-          fetch('/api/categories').then(res => res.json()),
-          fetch('/api/health_conditions').then(res => res.json()),
-          fetch('/api/sponsors').then(res => res.json()),
-          fetch('/api/audit_logs').then(res => res.json()),
-          fetch('/api/settings/print').then(res => res.json())
+        // Test connection first
+        const healthRes = await fetch('/api/health');
+        if (!healthRes.ok) throw new Error('API Health check failed');
+
+        const fetchTable = async (table: string) => {
+          const res = await fetch(`/api/${table}`);
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || `Failed to fetch ${table}`);
+          }
+          return res.json();
+        };
+
+        const [b, r, u, ben, cat, hc, sp, l] = await Promise.all([
+          fetchTable('branches'),
+          fetchTable('regions'),
+          fetchTable('users'),
+          fetchTable('beneficiaries'),
+          fetchTable('categories'),
+          fetchTable('health_conditions'),
+          fetchTable('sponsors'),
+          fetchTable('audit_logs')
         ]);
+
+        const psRes = await fetch('/api/settings/print');
+        const ps = psRes.ok ? await psRes.json() : null;
 
         if (b && !b.error) setBranchesState(b);
         if (r && !r.error) setRegionsState(r);
@@ -419,52 +247,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (l && !l.error) setLogsState(l);
         if (ps && !ps.error) setPrintSettingsState(ps);
 
-        if (!b || b.length === 0 || b.error) {
-          console.log('No data found in API, using seed data');
-          setBranchesState(INITIAL_BRANCHES);
-          setRegionsState(INITIAL_REGIONS);
-          setUsersState(INITIAL_USERS);
-          setBeneficiariesState(INITIAL_BENEFICIARIES);
-          setCategoriesState(INITIAL_CATEGORIES);
-          setHealthConditionsState(INITIAL_HEALTH_CONDITIONS);
-          setSponsorsState(INITIAL_SPONSORS);
-        }
       } catch (error) {
         console.error('Error fetching data from API:', error);
-        // Fallback to localStorage
-        const localBranches = localStorage.getItem('branches');
-        if (localBranches) setBranchesState(JSON.parse(localBranches));
-        else setBranchesState(INITIAL_BRANCHES);
-        
-        const localRegions = localStorage.getItem('regions');
-        if (localRegions) setRegionsState(JSON.parse(localRegions));
-        else setRegionsState(INITIAL_REGIONS);
-
-        const localUsers = localStorage.getItem('users');
-        if (localUsers) setUsersState(JSON.parse(localUsers));
-        else setUsersState(INITIAL_USERS);
-
-        const localBeneficiaries = localStorage.getItem('beneficiaries');
-        if (localBeneficiaries) setBeneficiariesState(JSON.parse(localBeneficiaries));
-        else setBeneficiariesState(INITIAL_BENEFICIARIES);
-
-        const localCategories = localStorage.getItem('categories');
-        if (localCategories) setCategoriesState(JSON.parse(localCategories));
-        else setCategoriesState(INITIAL_CATEGORIES);
-
-        const localHealth = localStorage.getItem('healthConditions');
-        if (localHealth) setHealthConditionsState(JSON.parse(localHealth));
-        else setHealthConditionsState(INITIAL_HEALTH_CONDITIONS);
-
-        const localSponsors = localStorage.getItem('sponsors');
-        if (localSponsors) setSponsorsState(JSON.parse(localSponsors));
-        else setSponsorsState(INITIAL_SPONSORS);
-
-        const localLogs = localStorage.getItem('audit_logs');
-        if (localLogs) setLogsState(JSON.parse(localLogs));
-
-        const localPrint = localStorage.getItem('print_settings');
-        if (localPrint) setPrintSettingsState(JSON.parse(localPrint));
+        // We no longer fallback to seed data to ensure data integrity with the DB
       } finally {
         setIsLoading(false);
       }
@@ -564,6 +349,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetToSeedData = () => {
+    // This now only clears local cache; data remains in Supabase
     localStorage.clear();
     window.location.reload();
   };

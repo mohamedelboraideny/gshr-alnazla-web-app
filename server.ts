@@ -21,6 +21,11 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', supabase: !!supabaseUrl && !!supabaseKey });
+  });
+
   // --- API Routes ---
 
   // Generic fetch for all tables
