@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -9,10 +10,12 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('CRITICAL: Supabase environment variables are missing!');
+  console.error('CRITICAL: Supabase environment variables are missing! Please check your .env file.');
 }
 
-const supabase = createClient(supabaseUrl || '', supabaseKey || '');
+const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 async function startServer() {
   const app = express();
@@ -30,6 +33,7 @@ async function startServer() {
 
   // Generic fetch for all tables
   app.get('/api/:table', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const { table } = req.params;
     const { data, error } = await supabase.from(table as any).select('*');
     if (error) return res.status(400).json(error);
@@ -38,6 +42,7 @@ async function startServer() {
 
   // Upsert for all tables
   app.post('/api/:table/upsert', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const { table } = req.params;
     const payload = req.body;
     const { data, error } = await supabase.from(table as any).upsert(payload);
@@ -47,6 +52,7 @@ async function startServer() {
 
   // Insert for logs
   app.post('/api/:table/insert', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const { table } = req.params;
     const payload = req.body;
     const { data, error } = await supabase.from(table as any).insert(payload);
@@ -56,6 +62,7 @@ async function startServer() {
 
   // Special route for print settings (single row)
   app.get('/api/settings/print', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const { data, error } = await supabase.from('print_settings').select('*').single();
     if (error && error.code !== 'PGRST116') return res.status(400).json(error);
     res.json(data);
