@@ -14,6 +14,13 @@ export const BeneficiaryService = {
     const from = page * limit;
     const to = from + limit - 1;
 
+    // Convert array to comma-separated string for query params
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      filters.categoryIds = filters.categoryIds.join(',');
+    } else {
+      delete filters.categoryIds; // Don't send empty array
+    }
+
     if (API_MODE === 'proxy') {
       // If using proxy, we would need a new endpoint like /api/beneficiaries/paginated
       // For now, we'll build the query string
@@ -30,10 +37,10 @@ export const BeneficiaryService = {
       // Direct Supabase Mode with RLS
       if (!supabase) throw new Error('Supabase client not initialized for direct mode');
       
-      // We only select the columns we actually need for the table view to save bandwidth
+      // Select all columns to ensure no data is missing
       let query = supabase
         .from('beneficiaries')
-        .select('id, name, nationalId, phone, birthDate, educationLevel, schoolName, regionId, address, categoryIds, healthConditions, sponsorshipStatus, type, familyId, kinshipRelation, branchId', { count: 'exact' })
+        .select('*', { count: 'exact' })
         .range(from, to)
         .order('createdAt', { ascending: false });
 
@@ -44,6 +51,11 @@ export const BeneficiaryService = {
       if (filters.regionId) query = query.eq('regionId', filters.regionId);
       if (filters.sponsorshipStatus) query = query.eq('sponsorshipStatus', filters.sponsorshipStatus);
       if (filters.gender) query = query.eq('gender', filters.gender);
+      if (filters.educationLevel) query = query.eq('educationLevel', filters.educationLevel);
+      if (filters.categoryIds) {
+        const cats = filters.categoryIds.split(',');
+        query = query.contains('categoryIds', cats);
+      }
 
       const { data, error, count } = await query;
 

@@ -42,7 +42,7 @@ async function startServer() {
 
     let query = supabase
       .from('beneficiaries')
-      .select('id, name, nationalId, phone, birthDate, educationLevel, schoolName, regionId, address, categoryIds, healthConditions, sponsorshipStatus, type, familyId, kinshipRelation, branchId', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .range(from, to)
       .order('createdAt', { ascending: false });
 
@@ -52,6 +52,11 @@ async function startServer() {
     if (req.query.regionId) query = query.eq('regionId', req.query.regionId);
     if (req.query.sponsorshipStatus) query = query.eq('sponsorshipStatus', req.query.sponsorshipStatus);
     if (req.query.gender) query = query.eq('gender', req.query.gender);
+    if (req.query.educationLevel) query = query.eq('educationLevel', req.query.educationLevel);
+    if (req.query.categoryIds) {
+      const cats = (req.query.categoryIds as string).split(',');
+      query = query.contains('categoryIds', cats);
+    }
 
     const { data, error, count } = await query;
     if (error) return res.status(400).json(error);

@@ -18,7 +18,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const [page, setPage] = useState(0);
   const limit = 20;
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
   const [filterRegion, setFilterRegion] = useState('');
   const [filterEducation, setFilterEducation] = useState('');
   const [filterSponsorship, setFilterSponsorship] = useState('');
@@ -27,14 +29,27 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const [filterCategoryIds, setFilterCategoryIds] = useState<string[]>([]);
   const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
 
+  // Debounce search input (only search if empty or >= 3 chars)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput.length === 0 || searchInput.length >= 3) {
+        setDebouncedSearch(searchInput);
+        setPage(0); // Reset page on new search
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   // SWR Fetching
   const { data: swrData, error: swrError, isLoading: swrLoading, mutate } = useSWR(
-    ['beneficiaries', page, limit, searchTerm, filterRegion, filterSponsorship, filterGender],
+    ['beneficiaries', page, limit, debouncedSearch, filterRegion, filterSponsorship, filterGender, filterEducation, filterCategoryIds.join(',')],
     () => BeneficiaryService.getPaginated(page, limit, {
-      searchTerm,
+      searchTerm: debouncedSearch,
       regionId: filterRegion,
       sponsorshipStatus: filterSponsorship,
-      gender: filterGender
+      gender: filterGender,
+      educationLevel: filterEducation,
+      categoryIds: filterCategoryIds
     })
   );
 
@@ -104,30 +119,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const isAdmin = user.role === Role.ADMIN;
   const isManager = user.role === Role.MANAGER;
   
-  const filteredBeneficiaries = useMemo(() => {
-    return beneficiaries.filter((b: Beneficiary) => {
-      const hasPermission = isAdmin ? true : b.branchId === user.branchId;
-      if (!hasPermission) return false;
-
-      const matchesEducation = filterEducation ? b.educationLevel === filterEducation : true;
-
-      let matchesCategory = true;
-      if (filterCategoryIds.length > 0) {
-        matchesCategory = b.categoryIds?.some(catId => filterCategoryIds.includes(catId)) || false;
-      }
-
-      return matchesEducation && matchesCategory;
-    });
-  }, [beneficiaries, filterEducation, filterCategoryIds, user.branchId, isAdmin]);
-
   const treeData = useMemo(() => {
     if (!isTreeView) return [];
     
     // 1. Get filtered heads
-    const heads = filteredBeneficiaries.filter((b: Beneficiary) => b.type === BeneficiaryType.FAMILY_HEAD);
+    const heads = beneficiaries.filter((b: Beneficiary) => b.type === BeneficiaryType.FAMILY_HEAD);
     
     // 2. Get filtered individuals
-    const individuals = filteredBeneficiaries.filter((b: Beneficiary) => b.type === BeneficiaryType.INDIVIDUAL);
+    const individuals = beneficiaries.filter((b: Beneficiary) => b.type === BeneficiaryType.INDIVIDUAL);
     
     // 3. Prepare data structure
     const result: (Beneficiary & { children: Beneficiary[] })[] = [];
@@ -144,7 +143,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     });
 
     return result;
-  }, [filteredBeneficiaries, isTreeView, beneficiaries]);
+  }, [isTreeView, beneficiaries]);
 
   const toggleExpand = (id: string) => {
     setExpandedFamilies(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -187,6 +186,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       if (prev.includes(catId)) return prev.filter(id => id !== catId);
       return [...prev, catId];
     });
+    setPage(0);
   };
 
   const validateForm = () => {
@@ -424,9 +424,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         <div className="relative flex-1 min-w-[280px]">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input 
-            type="text" placeholder="بحث بالاسم، الهوية، الهاتف..." 
+            type="text" placeholder="بحث بالاسم، الهوية، الهاتف... (اكتب 3 حروف على الأقل)" 
             className="w-full pr-12 pl-4 py-3 rounded-2xl border-none bg-gray-50 dark:bg-gray-900 text-sm font-bold focus:ring-2 focus:ring-emerald-500" 
-            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
+            value={searchInput} onChange={(e) => setSearchInput(e.target.value)} 
           />
         </div>
         
@@ -437,7 +437,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         
         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
            <MapPin size={16} className="text-gray-400" />
-           <select className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0" value={filterRegion} onChange={(e) => setFilterRegion(e.target.value)}>
+           <select className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0" value={filterRegion} onChange={(e) => { setFilterRegion(e.target.value); setPage(0); }}>
               <option value="">كل المناطق</option>
               {branchRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
            </select>
@@ -445,7 +445,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
 
         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
            <Heart size={16} className="text-gray-400" />
-           <select className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0" value={filterSponsorship} onChange={(e) => setFilterSponsorship(e.target.value)}>
+           <select className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-300 focus:ring-0" value={filterSponsorship} onChange={(e) => { setFilterSponsorship(e.target.value); setPage(0); }}>
               <option value="">كل حالات الكفالة</option>
               <option value={SponsorshipStatus.SPONSORED}>{SponsorshipStatus.SPONSORED}</option>
               <option value={SponsorshipStatus.NOT_SPONSORED}>{SponsorshipStatus.NOT_SPONSORED}</option>
@@ -503,6 +503,16 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
               ) : swrError ? (
                 <tr>
                   <td colSpan={10} className="text-center py-8 text-red-500">حدث خطأ أثناء تحميل البيانات.</td>
+                </tr>
+              ) : beneficiaries.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="text-center py-12">
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <Search size={48} className="mb-4 opacity-20" />
+                      <p className="text-lg font-bold">لا توجد بيانات مطابقة للبحث</p>
+                      <p className="text-sm mt-1">حاول تغيير كلمات البحث أو الفلاتر المستخدمة</p>
+                    </div>
+                  </td>
                 </tr>
               ) : isTreeView ? (
                 treeData.map((item, index) => (
@@ -678,7 +688,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 ))
               ) : (
                  // Flat View (Standard)
-                filteredBeneficiaries.map((b: Beneficiary, index: number) => (
+                beneficiaries.map((b: Beneficiary, index: number) => (
                    <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:bg-white">
                       <td className="px-2 py-3 text-center text-xs font-bold text-gray-400 print:text-black">{index + 1}</td>
                       <td className="px-4 py-3">
