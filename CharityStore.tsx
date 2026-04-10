@@ -6,8 +6,8 @@ const API_MODE = import.meta.env.VITE_API_MODE || 'proxy';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
-// Initialize Supabase client for 'direct' mode (GitHub Pages)
-export const supabase = (API_MODE === 'direct' && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
+// Initialize Supabase client (Required for Auth in both modes, and data in direct mode)
+export const supabase = (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
   : null;
 
