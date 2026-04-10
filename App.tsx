@@ -12,6 +12,7 @@ import Regions from './pages/Regions';
 import Reports from './pages/Reports';
 import Statuses from './pages/Statuses';
 import Sponsors from './pages/Sponsors';
+import Subscriptions from './pages/Subscriptions';
 import { User, StoreProvider, useStore } from './CharityStore';
 
 const AuthGate: React.FC = () => {
@@ -67,6 +68,7 @@ const AuthGate: React.FC = () => {
           <Route path="/regions" element={<Regions user={user} />} />
           <Route path="/statuses" element={<Statuses user={user} />} />
           <Route path="/sponsors" element={<Sponsors user={user} />} />
+          <Route path="/subscriptions" element={<Subscriptions user={user} />} />
           <Route path="/reports" element={<Reports user={user} />} />
           <Route path="/branches" element={<Branches user={user} />} />
           <Route path="/branches/:id" element={<BranchDetail user={user} />} />

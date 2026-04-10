@@ -63,6 +63,36 @@ async function startServer() {
     res.json({ data, count });
   });
 
+  // Paginated Subscriptions
+  app.get('/api/subscriptions/paginated', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    
+    const page = parseInt(req.query.page as string) || 0;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const from = page * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from('sponsor_subscriptions')
+      .select('*, sponsors!inner(name, branchId)', { count: 'exact' })
+      .range(from, to)
+      .order('created_at', { ascending: false });
+
+    if (req.query.branchId) {
+      query = query.eq('sponsors.branchId', req.query.branchId);
+    }
+    if (req.query.sponsorId) {
+      query = query.eq('sponsor_id', req.query.sponsorId);
+    }
+    if (req.query.searchTerm) {
+      query = query.ilike('sponsors.name', `%${req.query.searchTerm}%`);
+    }
+
+    const { data, error, count } = await query;
+    if (error) return res.status(400).json(error);
+    res.json({ data, count });
+  });
+
   // Generic fetch for all tables
   app.get('/api/:table', async (req: express.Request, res: express.Response) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });

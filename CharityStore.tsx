@@ -119,6 +119,7 @@ export interface Sponsor {
   status: 'نشط' | 'متوقف';
   startDate: string;
   notes?: string;
+  lastPaidMonth?: string;
   createdAt: string;
 }
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, User, Sponsor, Role } from '../CharityStore';
-import { Plus, Edit3, Trash2, X, Search, Phone, Coins, Calendar, HeartHandshake, Building2 } from 'lucide-react';
+import { useStore, User, Sponsor, Role, supabase } from '../CharityStore';
+import { Plus, Edit3, Trash2, X, Search, Phone, Coins, Calendar, HeartHandshake, Building2, FileText, CheckCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
 const Sponsors: React.FC<{ user: User }> = ({ user }) => {
@@ -25,6 +25,19 @@ const Sponsors: React.FC<{ user: User }> = ({ user }) => {
     isOpen: false,
     id: null
   });
+
+  // Subscription Modal State
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+  const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
+  const [subFormData, setSubFormData] = useState({
+    amount: 0,
+    paymentDate: new Date().toISOString().split('T')[0],
+    paidMonth: new Date().toISOString().slice(0, 7), // YYYY-MM
+    manualBookNumber: '',
+    notes: ''
+  });
+  const [subLoading, setSubLoading] = useState(false);
+  const [subSuccess, setSubSuccess] = useState<{book: number, receipt: number} | null>(null);
 
   const isAdmin = user.role === Role.ADMIN;
   const branchName = branches.find(b => b.id === user.branchId)?.name || "الإدارة العامة";
@@ -108,6 +121,75 @@ const Sponsors: React.FC<{ user: User }> = ({ user }) => {
     if (confirmModal.id) {
       setSponsors(sponsors.filter(s => s.id !== confirmModal.id));
       addLog(user, 'حذف', 'كفيل', confirmModal.id);
+    }
+  };
+
+  const handleOpenSubModal = (sponsor: Sponsor) => {
+    setSelectedSponsor(sponsor);
+    setSubFormData({
+      amount: sponsor.amount,
+      paymentDate: new Date().toISOString().split('T')[0],
+      paidMonth: new Date().toISOString().slice(0, 7),
+      manualBookNumber: '',
+      notes: ''
+    });
+    setSubSuccess(null);
+    setErrors({});
+    setIsSubModalOpen(true);
+  };
+
+  const handleSaveSubscription = async () => {
+    if (!selectedSponsor) return;
+    if (subFormData.amount <= 0) {
+      setErrors({ subAmount: 'يجب إدخال مبلغ صحيح' });
+      return;
+    }
+    if (!subFormData.paidMonth) {
+      setErrors({ paidMonth: 'يجب تحديد الشهر' });
+      return;
+    }
+
+    setSubLoading(true);
+    setErrors({});
+
+    try {
+      if (!supabase) throw new Error('Supabase not initialized');
+
+      const { data, error } = await supabase.rpc('add_sponsor_subscription', {
+        p_sponsor_id: selectedSponsor.id,
+        p_amount: subFormData.amount,
+        p_payment_date: subFormData.paymentDate,
+        p_paid_month: subFormData.paidMonth,
+        p_notes: subFormData.notes,
+        p_user_id: user.id,
+        p_manual_book_number: subFormData.manualBookNumber ? parseInt(subFormData.manualBookNumber) : null
+      });
+
+      if (error) throw error;
+
+      if (data && data.success) {
+        setSubSuccess({ book: data.book_number, receipt: data.receipt_number });
+        
+        // Update local sponsor state
+        setSponsors(sponsors.map(s => 
+          s.id === selectedSponsor.id ? { ...s, lastPaidMonth: subFormData.paidMonth } : s
+        ));
+        
+        addLog(user, 'إضافة اشتراك', 'كفيل', `رقم الدفتر: ${data.book_number}, إيصال: ${data.receipt_number}`);
+        
+        // Close modal after 3 seconds
+        setTimeout(() => {
+          setIsSubModalOpen(false);
+          setSubSuccess(null);
+        }, 3000);
+      } else {
+        throw new Error(data?.error || 'Unknown error');
+      }
+    } catch (err: any) {
+      console.error('Error adding subscription:', err);
+      setErrors({ submit: 'حدث خطأ أثناء حفظ الاشتراك' });
+    } finally {
+      setSubLoading(false);
     }
   };
 
@@ -202,6 +284,11 @@ const Sponsors: React.FC<{ user: User }> = ({ user }) => {
                   </td>
                   <td className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 print:text-black">
                      {new Date(sponsor.startDate).toLocaleDateString('ar-EG')}
+                     {sponsor.lastPaidMonth && (
+                       <div className="mt-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                         آخر دفع: {sponsor.lastPaidMonth}
+                       </div>
+                     )}
                   </td>
                   <td className="px-6 py-4">
                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${sponsor.status === 'نشط' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'} print:border print:border-black print:bg-white print:text-black`}>
@@ -210,6 +297,7 @@ const Sponsors: React.FC<{ user: User }> = ({ user }) => {
                   </td>
                   <td className="px-6 py-4 print-hidden">
                     <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <button onClick={() => handleOpenSubModal(sponsor)} title="إضافة اشتراك" className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition"><FileText size={16} /></button>
                        <button onClick={() => handleOpenModal(sponsor.id)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition"><Edit3 size={16} /></button>
                        <button onClick={() => setConfirmModal({ isOpen: true, id: sponsor.id })} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"><Trash2 size={16} /></button>
                     </div>
@@ -339,6 +427,107 @@ const Sponsors: React.FC<{ user: User }> = ({ user }) => {
               <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-sm font-black text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 transition">إلغاء</button>
               <button onClick={handleSave} className="flex-1 py-3 text-sm font-black text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition">حفظ البيانات</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isSubModalOpen && selectedSponsor && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 print-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+              <h3 className="text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
+                 <FileText className="text-emerald-500" size={24} />
+                 إضافة اشتراك جديد
+              </h3>
+              <button onClick={() => setIsSubModalOpen(false)} className="text-gray-400 p-2 hover:bg-white dark:hover:bg-gray-700 rounded-xl transition"><X size={20} /></button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {subSuccess ? (
+                <div className="text-center py-8">
+                  <CheckCircle className="text-emerald-500 mx-auto mb-4" size={48} />
+                  <h4 className="text-xl font-bold text-gray-800 dark:text-white mb-2">تم إضافة الاشتراك بنجاح</h4>
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 inline-block text-right">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-bold">رقم الدفتر: <span className="text-emerald-600">{subSuccess.book}</span></p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-bold">رقم القسيمة: <span className="text-emerald-600">{subSuccess.receipt}</span></p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl mb-4">
+                    <p className="text-sm font-bold text-indigo-800 dark:text-indigo-300">الكفيل: {selectedSponsor.name}</p>
+                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-1">قيمة الكفالة المعتادة: {selectedSponsor.amount} ج.م</p>
+                  </div>
+
+                  {errors.submit && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold text-center">{errors.submit}</div>}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">المبلغ المدفوع (جنية)</label>
+                      <input 
+                        type="number" 
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border ${errors.subAmount ? 'border-red-500' : 'border-transparent'} rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold`}
+                        value={subFormData.amount} 
+                        onChange={e => setSubFormData({...subFormData, amount: parseFloat(e.target.value) || 0})} 
+                      />
+                      {errors.subAmount && <p className="text-red-500 text-[10px] font-bold mt-1 mr-1">{errors.subAmount}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">تاريخ الدفع</label>
+                      <input 
+                        type="date" 
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" 
+                        value={subFormData.paymentDate} 
+                        onChange={e => setSubFormData({...subFormData, paymentDate: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">الشهر المدفوع عنه</label>
+                      <input 
+                        type="month" 
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border ${errors.paidMonth ? 'border-red-500' : 'border-transparent'} rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold`}
+                        value={subFormData.paidMonth} 
+                        onChange={e => setSubFormData({...subFormData, paidMonth: e.target.value})} 
+                      />
+                      {errors.paidMonth && <p className="text-red-500 text-[10px] font-bold mt-1 mr-1">{errors.paidMonth}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">رقم الدفتر (اختياري)</label>
+                      <input 
+                        type="number" 
+                        placeholder="تلقائي"
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" 
+                        value={subFormData.manualBookNumber} 
+                        onChange={e => setSubFormData({...subFormData, manualBookNumber: e.target.value})} 
+                      />
+                      <p className="text-[9px] text-gray-400 mt-1">اتركه فارغاً للاستمرار في نفس الدفتر</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-1">ملاحظات</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" 
+                      value={subFormData.notes} 
+                      onChange={e => setSubFormData({...subFormData, notes: e.target.value})} 
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!subSuccess && (
+              <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex gap-4">
+                <button onClick={() => setIsSubModalOpen(false)} className="flex-1 py-3 text-sm font-black text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 transition">إلغاء</button>
+                <button onClick={handleSaveSubscription} disabled={subLoading} className="flex-1 py-3 text-sm font-black text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition disabled:opacity-50">
+                  {subLoading ? 'جاري الحفظ...' : 'حفظ الاشتراك'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

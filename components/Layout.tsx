@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Building2, UserPlus, History, LogOut, Map, BarChart3, Sun, Moon, Tag, RotateCcw, Menu, X,
-  Baby, HeartPulse, HandHelping, Sparkles, Settings, HeartHandshake
+  Baby, HeartPulse, HandHelping, Sparkles, Settings, HeartHandshake, Receipt
 } from 'lucide-react';
 import { User, Role, useStore } from '../CharityStore';
 
@@ -37,6 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         { to: '/', icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', allowed: true },
         { to: '/beneficiaries', icon: <Users size={20} />, label: 'سجل المستفيدين', allowed: true },
         { to: '/sponsors', icon: <HeartHandshake size={20} />, label: 'إدارة الكفلاء', allowed: true },
+        { to: '/subscriptions', icon: <Receipt size={20} />, label: 'سجل الاشتراكات', allowed: true },
       ]
     },
     {
