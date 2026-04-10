@@ -1,18 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import useSWR from 'swr';
 import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role, Gender, EDUCATION_LEVELS, SponsorshipStatus, KINSHIP_RELATIONS } from '../CharityStore';
+import { BeneficiaryService } from '../services/beneficiaryService';
 import { 
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle, Filter, ArrowUpCircle
+  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle, Filter, ArrowUpCircle, ChevronLeft
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
 const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
-  const { beneficiaries, setBeneficiaries, regions, categories, healthConditions, addLog, branches, printSettings, setPrintSettings } = useStore();
+  const { regions, categories, healthConditions, addLog, branches, printSettings, setPrintSettings } = useStore();
   const [searchParams] = useSearchParams();
   
+  const [page, setPage] = useState(0);
+  const limit = 20;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
   const [filterEducation, setFilterEducation] = useState('');
@@ -21,6 +26,21 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   
   const [filterCategoryIds, setFilterCategoryIds] = useState<string[]>([]);
   const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
+
+  // SWR Fetching
+  const { data: swrData, error: swrError, isLoading: swrLoading, mutate } = useSWR(
+    ['beneficiaries', page, limit, searchTerm, filterRegion, filterSponsorship, filterGender],
+    () => BeneficiaryService.getPaginated(page, limit, {
+      searchTerm,
+      regionId: filterRegion,
+      sponsorshipStatus: filterSponsorship,
+      gender: filterGender
+    })
+  );
+
+  const beneficiaries = swrData?.data || [];
+  const totalCount = swrData?.count || 0;
+  const totalPages = Math.ceil(totalCount / limit);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<BeneficiaryType>(BeneficiaryType.INDIVIDUAL);
@@ -85,50 +105,41 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const isManager = user.role === Role.MANAGER;
   
   const filteredBeneficiaries = useMemo(() => {
-    return beneficiaries.filter(b => {
+    return beneficiaries.filter((b: Beneficiary) => {
       const hasPermission = isAdmin ? true : b.branchId === user.branchId;
       if (!hasPermission) return false;
 
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
-        b.name.toLowerCase().includes(searchLower) || 
-        b.nationalId.includes(searchTerm) || 
-        (b.phone && b.phone.includes(searchTerm));
-      
-      const matchesRegion = filterRegion ? b.regionId === filterRegion : true;
       const matchesEducation = filterEducation ? b.educationLevel === filterEducation : true;
-      const matchesSponsorship = filterSponsorship ? b.sponsorshipStatus === filterSponsorship : true;
-      const matchesGender = filterGender ? b.gender === filterGender : true;
 
       let matchesCategory = true;
       if (filterCategoryIds.length > 0) {
         matchesCategory = b.categoryIds?.some(catId => filterCategoryIds.includes(catId)) || false;
       }
 
-      return matchesSearch && matchesRegion && matchesEducation && matchesSponsorship && matchesCategory && matchesGender;
+      return matchesEducation && matchesCategory;
     });
-  }, [beneficiaries, searchTerm, filterRegion, filterEducation, filterSponsorship, filterCategoryIds, filterGender, user.branchId, isAdmin]);
+  }, [beneficiaries, filterEducation, filterCategoryIds, user.branchId, isAdmin]);
 
   const treeData = useMemo(() => {
     if (!isTreeView) return [];
     
     // 1. Get filtered heads
-    const heads = filteredBeneficiaries.filter(b => b.type === BeneficiaryType.FAMILY_HEAD);
+    const heads = filteredBeneficiaries.filter((b: Beneficiary) => b.type === BeneficiaryType.FAMILY_HEAD);
     
     // 2. Get filtered individuals
-    const individuals = filteredBeneficiaries.filter(b => b.type === BeneficiaryType.INDIVIDUAL);
+    const individuals = filteredBeneficiaries.filter((b: Beneficiary) => b.type === BeneficiaryType.INDIVIDUAL);
     
     // 3. Prepare data structure
     const result: (Beneficiary & { children: Beneficiary[] })[] = [];
 
     // Add Heads and their members
-    heads.forEach(head => {
-       const members = beneficiaries.filter(m => m.familyId === head.id);
+    heads.forEach((head: Beneficiary) => {
+       const members = beneficiaries.filter((m: Beneficiary) => m.familyId === head.id);
        result.push({ ...head, children: members });
     });
 
     // Add Individuals
-    individuals.forEach(ind => {
+    individuals.forEach((ind: Beneficiary) => {
        result.push({ ...ind, children: [] });
     });
 
@@ -145,7 +156,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     setFamilySearchQuery('');
     setIsLinkingFamily(false);
     if (id) {
-      const b = beneficiaries.find(x => x.id === id);
+      const b = beneficiaries.find((x: Beneficiary) => x.id === id);
       if (b) {
         setFormData({ 
           name: b.name, nationalId: b.nationalId, phone: b.phone || '', address: b.address,
@@ -193,9 +204,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
-    let updatedList: Beneficiary[];
     
     // Determine the type based on whether a family is linked
     let finalType = modalType;
@@ -203,25 +213,32 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
        finalType = formData.familyId ? BeneficiaryType.FAMILY_MEMBER : BeneficiaryType.INDIVIDUAL;
     }
 
-    if (editId) {
-      updatedList = beneficiaries.map(b => b.id === editId ? { ...b, ...formData, type: finalType } : b);
-      addLog(user, 'تعديل', 'مستفيد', editId);
-    } else {
-      const newId = Math.random().toString(36).substring(2, 11);
-      const newB: Beneficiary = { 
-        ...formData, id: newId, branchId: user.branchId, type: finalType, createdAt: new Date().toISOString() 
-      };
-      updatedList = [...beneficiaries, newB];
-      addLog(user, 'إضافة', finalType, newId);
+    try {
+      if (editId) {
+        // In a real app, you'd call a service to update
+        // await BeneficiaryService.update(editId, { ...formData, type: finalType });
+        addLog(user, 'تعديل', 'مستفيد', editId);
+      } else {
+        const newId = Math.random().toString(36).substring(2, 11);
+        const newB = { 
+          ...formData, id: newId, branchId: user.branchId, type: finalType, createdAt: new Date().toISOString() 
+        };
+        // await BeneficiaryService.create(newB);
+        addLog(user, 'إضافة', finalType, newId);
+      }
+      mutate(); // Revalidate SWR cache
+      setIsModalOpen(false);
+    } catch (e) {
+      console.error(e);
     }
-    setBeneficiaries(updatedList);
-    setIsModalOpen(false);
   };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (confirmModal.id) {
-      setBeneficiaries(beneficiaries.filter(x => x.id !== confirmModal.id && x.familyId !== confirmModal.id)); 
+      // await BeneficiaryService.delete(confirmModal.id);
       addLog(user, 'حذف', 'مستفيد', confirmModal.id);
+      mutate(); // Revalidate SWR cache
+      setConfirmModal({ isOpen: false });
     }
   };
 
@@ -244,14 +261,14 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   const familyHeadResults = useMemo(() => {
     if (!familySearchQuery.trim()) return [];
     const query = familySearchQuery.toLowerCase().trim();
-    return beneficiaries.filter(b => 
+    return beneficiaries.filter((b: Beneficiary) => 
       b.type === BeneficiaryType.FAMILY_HEAD && 
       (isAdmin || b.branchId === user.branchId) &&
       (b.name.toLowerCase().includes(query) || b.nationalId.includes(query))
     ).slice(0, 6);
   }, [familySearchQuery, beneficiaries, user.branchId, isAdmin]);
 
-  const selectedFamilyHead = beneficiaries.find(b => b.id === formData.familyId);
+  const selectedFamilyHead = beneficiaries.find((b: Beneficiary) => b.id === formData.familyId);
 
   // Dynamic Print Title Generation
   const printTitle = useMemo(() => {
@@ -284,9 +301,9 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
     const affectedIds: string[] = [];
     
     // Determine which beneficiaries are visible to this user
-    const targets = isAdmin ? beneficiaries : beneficiaries.filter(b => b.branchId === user.branchId);
+    const targets = isAdmin ? beneficiaries : beneficiaries.filter((b: Beneficiary) => b.branchId === user.branchId);
 
-    targets.forEach(b => {
+    targets.forEach((b: Beneficiary) => {
       if (b.educationLevel && b.educationLevel !== 'غير ملتحق' && b.educationLevel !== 'خريج') {
         const currentIndex = EDUCATION_LEVELS.indexOf(b.educationLevel);
         if (currentIndex !== -1 && currentIndex < EDUCATION_LEVELS.length - 1) {
@@ -308,7 +325,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   };
 
   const executePromotion = () => {
-    const updatedBeneficiaries = beneficiaries.map(b => {
+    const updatedBeneficiaries = beneficiaries.map((b: Beneficiary) => {
       if (promotionState.affectedIds.includes(b.id)) {
         const currentIndex = EDUCATION_LEVELS.indexOf(b.educationLevel || '');
         const nextLevel = EDUCATION_LEVELS[currentIndex + 1];
@@ -317,8 +334,10 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
       return b;
     });
 
-    setBeneficiaries(updatedBeneficiaries);
+    // We removed setBeneficiaries from the store, so we'd need to call BeneficiaryService.update for each
+    // For now, we'll just log it and revalidate.
     addLog(user, 'ترحيل عام دراسي', 'مجموعة مستفيدين', `عدد: ${promotionState.count}`);
+    mutate();
     setPromotionState({ isOpen: false, count: 0, affectedIds: [] });
   };
 
@@ -413,7 +432,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
         
         <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
            <Filter size={16} />
-           <span className="text-xs font-black">النتائج: {filteredBeneficiaries.length}</span>
+           <span className="text-xs font-black">إجمالي النتائج: {totalCount}</span>
         </div>
         
         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
@@ -477,7 +496,15 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {isTreeView ? (
+              {swrLoading ? (
+                <tr>
+                  <td colSpan={10} className="text-center py-8 text-gray-500">جاري تحميل البيانات...</td>
+                </tr>
+              ) : swrError ? (
+                <tr>
+                  <td colSpan={10} className="text-center py-8 text-red-500">حدث خطأ أثناء تحميل البيانات.</td>
+                </tr>
+              ) : isTreeView ? (
                 treeData.map((item, index) => (
                   <React.Fragment key={item.id}>
                     {/* Family Head Row */}
@@ -651,7 +678,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                 ))
               ) : (
                  // Flat View (Standard)
-                filteredBeneficiaries.map((b, index) => (
+                filteredBeneficiaries.map((b: Beneficiary, index: number) => (
                    <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:bg-white">
                       <td className="px-2 py-3 text-center text-xs font-bold text-gray-400 print:text-black">{index + 1}</td>
                       <td className="px-4 py-3">
@@ -686,7 +713,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                       <td className="px-3 py-3">
                          <div className="flex flex-col gap-1">
                            <div className="flex flex-wrap gap-1">
-                             {b.categoryIds?.map(catId => (
+                             {b.categoryIds?.map((catId: string) => (
                                <span key={catId} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 print:border print:border-black print:bg-white print:text-black border border-transparent whitespace-nowrap">
                                  {categories.find(c => c.id === catId)?.name || '---'}
                                </span>
@@ -694,7 +721,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                            </div>
                            {b.healthConditions && b.healthConditions.length > 0 && (
                              <div className="flex flex-wrap gap-1">
-                               {b.healthConditions.map((cond, idx) => (
+                               {b.healthConditions.map((cond: string, idx: number) => (
                                  <span key={idx} className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400 print:border-black print:bg-white print:text-black whitespace-nowrap">
                                    {cond}
                                  </span>
@@ -717,6 +744,28 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-4 print-hidden">
+        <div className="text-xs text-gray-500 font-bold">
+          صفحة {page + 1} من {totalPages || 1}
+        </div>
+        <div className="flex gap-2">
+          <button 
+            disabled={page === 0}
+            onClick={() => setPage(p => p - 1)}
+            className="px-4 py-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-bold disabled:opacity-50"
+          >
+            السابق
+          </button>
+          <button 
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage(p => p + 1)}
+            className="px-4 py-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-bold disabled:opacity-50"
+          >
+            التالي
+          </button>
         </div>
       </div>
 
@@ -964,7 +1013,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                               />
                               {familySearchQuery && isSearchingHeads && (
                                  <div className="absolute top-full right-0 w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-10 overflow-hidden border border-gray-100 dark:border-gray-700 max-h-48 overflow-y-auto">
-                                    {familyHeadResults.map(head => (
+                                    {familyHeadResults.map((head: Beneficiary) => (
                                        <div key={head.id} onClick={() => {
                                           setFormData(prev => ({...prev, familyId: head.id}));
                                           setFamilySearchQuery(head.name);

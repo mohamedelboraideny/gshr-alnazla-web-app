@@ -16,12 +16,22 @@ import { User, StoreProvider, useStore } from './CharityStore';
 
 const AuthGate: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const { isLoading } = useStore();
+  const { isLoading, fetchData } = useStore();
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('logged_user');
-    if (saved) setUser(JSON.parse(saved));
+    if (saved) {
+      setUser(JSON.parse(saved));
+    }
   }, []);
+
+  // Fetch data ONLY when user is authenticated
+  useEffect(() => {
+    if (user && !isDataLoaded) {
+      fetchData().then(() => setIsDataLoaded(true));
+    }
+  }, [user, isDataLoaded, fetchData]);
 
   const handleLogin = (u: User) => {
     setUser(u);
@@ -33,7 +43,7 @@ const AuthGate: React.FC = () => {
     localStorage.removeItem('logged_user');
   };
 
-  if (isLoading) {
+  if (isLoading || (user && !isDataLoaded)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-4">

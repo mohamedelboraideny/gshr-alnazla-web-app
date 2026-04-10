@@ -7,7 +7,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
 // Initialize Supabase client for 'direct' mode (GitHub Pages)
-const supabase = (API_MODE === 'direct' && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
+export const supabase = (API_MODE === 'direct' && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
   : null;
 
@@ -198,6 +198,8 @@ interface StoreContextType {
   toggleDarkMode: () => void;
   resetToSeedData: () => void;
   setPrintSettings: (settings: PrintSettings) => Promise<void>;
+  fetchData: () => Promise<void>;
+  supabase: any;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -215,86 +217,79 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return localStorage.getItem('theme') === 'dark';
   });
   const [printSettings, setPrintSettingsState] = useState<PrintSettings>(INITIAL_PRINT_SETTINGS);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        if (API_MODE === 'proxy') {
-          // Test connection first
-          const healthRes = await fetch('/api/health');
-          if (!healthRes.ok) throw new Error('API Health check failed');
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      if (API_MODE === 'proxy') {
+        // Test connection first
+        const healthRes = await fetch('/api/health');
+        if (!healthRes.ok) throw new Error('API Health check failed');
 
-          const fetchTable = async (table: string) => {
-            const res = await fetch(`/api/${table}`);
-            if (!res.ok) {
-              const err = await res.json();
-              throw new Error(err.message || `Failed to fetch ${table}`);
-            }
-            return res.json();
-          };
+        const fetchTable = async (table: string) => {
+          const res = await fetch(`/api/${table}`);
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || `Failed to fetch ${table}`);
+          }
+          return res.json();
+        };
 
-          const [b, r, u, ben, cat, hc, sp, l] = await Promise.all([
-            fetchTable('branches'),
-            fetchTable('regions'),
-            fetchTable('users'),
-            fetchTable('beneficiaries'),
-            fetchTable('categories'),
-            fetchTable('health_conditions'),
-            fetchTable('sponsors'),
-            fetchTable('audit_logs')
-          ]);
+        const [b, r, u, cat, hc, sp, l] = await Promise.all([
+          fetchTable('branches'),
+          fetchTable('regions'),
+          fetchTable('user_profiles'), // Updated to user_profiles
+          fetchTable('categories'),
+          fetchTable('health_conditions'),
+          fetchTable('sponsors'),
+          fetchTable('audit_logs')
+        ]);
 
-          const psRes = await fetch('/api/settings/print');
-          const ps = psRes.ok ? await psRes.json() : null;
+        const psRes = await fetch('/api/settings/print');
+        const ps = psRes.ok ? await psRes.json() : null;
 
-          if (b && !b.error) setBranchesState(b);
-          if (r && !r.error) setRegionsState(r);
-          if (u && !u.error) setUsersState(u);
-          if (ben && !ben.error) setBeneficiariesState(ben);
-          if (cat && !cat.error) setCategoriesState(cat);
-          if (hc && !hc.error) setHealthConditionsState(hc);
-          if (sp && !sp.error) setSponsorsState(sp);
-          if (l && !l.error) setLogsState(l);
-          if (ps && !ps.error) setPrintSettingsState(ps);
-        } else {
-          // Direct Mode (GitHub Pages)
-          if (!supabase) throw new Error('Supabase client not initialized for direct mode');
+        if (b && !b.error) setBranchesState(b);
+        if (r && !r.error) setRegionsState(r);
+        if (u && !u.error) setUsersState(u);
+        if (cat && !cat.error) setCategoriesState(cat);
+        if (hc && !hc.error) setHealthConditionsState(hc);
+        if (sp && !sp.error) setSponsorsState(sp);
+        if (l && !l.error) setLogsState(l);
+        if (ps && !ps.error) setPrintSettingsState(ps);
+      } else {
+        // Direct Mode (GitHub Pages)
+        if (!supabase) throw new Error('Supabase client not initialized for direct mode');
 
-          const [b, r, u, ben, cat, hc, sp, l, ps] = await Promise.all([
-            supabase.from('branches').select('*'),
-            supabase.from('regions').select('*'),
-            supabase.from('users').select('*'),
-            supabase.from('beneficiaries').select('*'),
-            supabase.from('categories').select('*'),
-            supabase.from('health_conditions').select('*'),
-            supabase.from('sponsors').select('*'),
-            supabase.from('audit_logs').select('*'),
-            supabase.from('print_settings').select('*').single()
-          ]);
+        const [b, r, u, cat, hc, sp, l, ps] = await Promise.all([
+          supabase.from('branches').select('*'),
+          supabase.from('regions').select('*'),
+          supabase.from('user_profiles').select('*'), // Updated to user_profiles
+          supabase.from('categories').select('*'),
+          supabase.from('health_conditions').select('*'),
+          supabase.from('sponsors').select('*'),
+          supabase.from('audit_logs').select('*'),
+          supabase.from('print_settings').select('*').single()
+        ]);
 
-          if (b.data) setBranchesState(b.data);
-          if (r.data) setRegionsState(r.data);
-          if (u.data) setUsersState(u.data);
-          if (ben.data) setBeneficiariesState(ben.data);
-          if (cat.data) setCategoriesState(cat.data);
-          if (hc.data) setHealthConditionsState(hc.data);
-          if (sp.data) setSponsorsState(sp.data);
-          if (l.data) setLogsState(l.data);
-          if (ps.data) setPrintSettingsState(ps.data);
-        }
-
-      } catch (error) {
-        console.error('Error fetching data from API:', error);
-        // We no longer fallback to seed data to ensure data integrity with the DB
-      } finally {
-        setIsLoading(false);
+        if (b.data) setBranchesState(b.data);
+        if (r.data) setRegionsState(r.data);
+        if (u.data) setUsersState(u.data);
+        if (cat.data) setCategoriesState(cat.data);
+        if (hc.data) setHealthConditionsState(hc.data);
+        if (sp.data) setSponsorsState(sp.data);
+        if (l.data) setLogsState(l.data);
+        if (ps.data) setPrintSettingsState(ps.data);
       }
-    };
 
-    fetchData();
-  }, []);
+    } catch (error) {
+      console.error('Error fetching data from API:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Removed auto-fetch useEffect to prevent data leakage on login page
 
   const apiUpsert = async (table: string, data: any) => {
     try {
@@ -329,7 +324,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const saveUsers = async (data: User[]) => {
     setUsersState(data);
     localStorage.setItem('users', JSON.stringify(data));
-    await apiUpsert('users', data);
+    await apiUpsert('user_profiles', data);
   };
 
   const setBeneficiaries = async (data: Beneficiary[]) => {
@@ -407,7 +402,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider value={{
       branches, regions, users, beneficiaries, categories, healthConditions, sponsors, logs, isDarkMode, printSettings, isLoading,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, setSponsors, addLog, toggleDarkMode, resetToSeedData, setPrintSettings
+      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, setSponsors, addLog, toggleDarkMode, resetToSeedData, setPrintSettings, fetchData, supabase
     }}>
       {children}
     </StoreContext.Provider>
