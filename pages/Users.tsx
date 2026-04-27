@@ -50,13 +50,14 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
     }
 
     try {
+      const API_MODE = import.meta.env.VITE_API_MODE || 'proxy';
       if (editId) {
         let newUsers = [...store.users];
         newUsers = newUsers.map(u => u.id === editId ? { ...u, ...formData } : u);
         await store.saveUsers(newUsers);
         store.addLog(currentUser, 'تعديل مستخدم', 'مستخدم', editId);
       } else {
-        if (import.meta.env.VITE_API_MODE === 'proxy') {
+        if (API_MODE === 'proxy') {
            const res = await fetch('/api/users/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -83,14 +84,15 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
   const executeAction = async () => {
     if (!confirmModal.id) return;
     try {
+      const API_MODE = import.meta.env.VITE_API_MODE || 'proxy';
       if (confirmModal.mode === 'delete') {
-        if (import.meta.env.VITE_API_MODE === 'proxy') {
+        if (API_MODE === 'proxy') {
            await fetch(`/api/users/${confirmModal.id}`, { method: 'DELETE' });
         }
         await store.saveUsers(store.users.filter(u => u.id !== confirmModal.id));
         store.addLog(currentUser, 'حذف مستخدم', 'مستخدم', confirmModal.id);
       } else {
-        if (import.meta.env.VITE_API_MODE === 'proxy') {
+        if (API_MODE === 'proxy') {
            await fetch('/api/users/reset', { 
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },

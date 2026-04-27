@@ -24,13 +24,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       let loggedInUser: User | null = null;
+      const API_MODE = import.meta.env.VITE_API_MODE || 'proxy';
       
-      if (import.meta.env.VITE_API_MODE === 'proxy') {
+      if (API_MODE === 'proxy') {
          const res = await fetch('/api/auth/login', {
            method: 'POST',
            headers: { 'Content-Type': 'application/json' },
            body: JSON.stringify({ username: username.trim(), password })
          });
+
          
          if (!res.ok) {
            const errData = await res.json();
@@ -87,8 +89,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
        const updatedUser = { ...tempUser, password: password, isFirstLogin: false };
+       const API_MODE = import.meta.env.VITE_API_MODE || 'proxy';
        
-       if (import.meta.env.VITE_API_MODE === 'proxy') {
+       if (API_MODE === 'proxy') {
          await fetch(`/api/users/change-password`, {
            method: 'POST',
            headers: { 'Content-Type': 'application/json' },
