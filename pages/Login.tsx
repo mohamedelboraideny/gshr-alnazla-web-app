@@ -8,13 +8,14 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const { supabase } = useStore();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // We no longer use 'step' or 'tempUser' for password changes here, 
-  // as Supabase handles password resets via email links.
+  // For password reset logic
+  const [step, setStep] = useState<'login' | 'reset_password'>('login');
+  const [tempUser, setTempUser] = useState<User | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,48 +23,74 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      if (!supabase) {
-        throw new Error('Supabase client not initialized. Check your .env file.');
-      }
+      let usersList: User[] = [];
 
-      // 1. Authenticate with Supabase GoTrue
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (authError) throw authError;
-
-      // 2. Fetch the user's profile from the secure user_profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      if (profileData) {
-        // Map the profile data to the User interface expected by the app
-        const loggedInUser: User = {
-          id: profileData.id,
-          name: profileData.name,
-          username: profileData.username,
-          role: profileData.role as Role,
-          branchId: profileData.branchId,
-        };
-        onLogin(loggedInUser);
+      // Fetch users dynamically based on API mode
+      if (import.meta.env.VITE_API_MODE === 'proxy') {
+         const res = await fetch('/api/user_profiles');
+         if (!res.ok) throw new Error('API fetch failed');
+         usersList = await res.json();
       } else {
-         throw new Error('User profile not found.');
+         if (!supabase) throw new Error('Supabase client not initialized.');
+         const { data, error } = await supabase.from('user_profiles').select('*');
+         if (error) throw error;
+         usersList = data || [];
       }
 
+      const user = usersList.find(u => u.username === username);
+
+      if (user) {
+        if (user.password === password) {
+          if (user.isFirstLogin || password === '123') {
+             setTempUser(user);
+             setStep('reset_password');
+          } else {
+             onLogin(user);
+          }
+        } else {
+          setError('بيانات الدخول غير صحيحة');
+        }
+      } else {
+        setError('المستخدم غير موجود');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'بيانات الدخول غير صحيحة');
+      setError(err.message || 'حدث خطأ أثناء الاتصال بالخادم');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempUser) return;
+    
+    if (password === '123') {
+       setError('لا يمكن استخدام كلمة المرور الافتراضية، يرجى إدخال كلمة مرور جديدة.');
+       return;
+    }
+
+    try {
+       const updatedUser = { ...tempUser, password: password, isFirstLogin: false };
+       
+       if (import.meta.env.VITE_API_MODE === 'proxy') {
+         await fetch(`/api/user_profiles/upsert`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify(updatedUser)
+         });
+       } else {
+         if (supabase) {
+           await supabase.from('user_profiles').upsert(updatedUser);
+         }
+       }
+       
+       onLogin(updatedUser);
+    } catch(err: any) {
+       setError('حدث خطأ أثناء تغيير كلمة المرور');
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-6">
@@ -71,10 +98,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         
         <div className="bg-emerald-600 p-12 text-white text-center">
           <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-6 backdrop-blur-xl border border-white/20 shadow-xl">
-            <LogIn size={36} />
+            {step === 'login' ? <LogIn size={36} /> : <ShieldCheck size={36} />}
           </div>
           <h1 className="text-2xl font-black tracking-tight leading-tight">
-            نظام إدارة المستفيدين
+            {step === 'login' ? 'نظام إدارة المستفيدين' : 'تأمين الحساب'}
           </h1>
           <p className="text-emerald-100 text-[11px] mt-2 font-black uppercase tracking-[0.2em] opacity-80">
             الجمعية الشرعية بالنزلة
@@ -89,43 +116,77 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 px-1">البريد الإلكتروني</label>
-              <div className="relative">
-                <UserIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
-                <input 
-                  type="email" required
-                  className="w-full pr-12 pl-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm font-black shadow-sm"
-                  placeholder="user@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+          {step === 'login' ? (
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 px-1">اسم المستخدم</label>
+                <div className="relative">
+                  <UserIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
+                  <input 
+                    type="text" required
+                    className="w-full pr-12 pl-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm font-black shadow-sm"
+                    placeholder="admin"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 px-1">كلمة المرور</label>
-              <div className="relative">
-                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
-                <input 
-                  type="password" required
-                  className="w-full pr-12 pl-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm font-black shadow-sm"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 px-1">كلمة المرور</label>
+                <div className="relative">
+                  <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
+                  <input 
+                    type="password" required
+                    className="w-full pr-12 pl-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm font-black shadow-sm"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
 
-            <button 
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-emerald-600 text-white py-5 rounded-[1.25rem] font-black shadow-2xl shadow-emerald-600/30 hover:bg-emerald-700 transition-all active:scale-95 text-sm mt-4 disabled:opacity-50"
-            >
-              {isLoading ? 'جاري التحقق...' : 'دخول للنظام'}
-            </button>
-          </form>
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-emerald-600 text-white py-5 rounded-[1.25rem] font-black shadow-2xl shadow-emerald-600/30 hover:bg-emerald-700 transition-all active:scale-95 text-sm mt-4 disabled:opacity-50"
+              >
+                {isLoading ? 'جاري التحقق...' : 'دخول للنظام'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordReset} className="space-y-6">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl mb-6">
+                 <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed font-bold text-center">
+                   مرحباً {tempUser?.name}، <br/>
+                   هذا هو تسجيل الدخول الأول لك. يجب عليك تغيير كلمة المرور الافتراضية لحماية حسابك قبل الدخول للنظام.
+                 </p>
+              </div>
+              
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2.5 px-1">كلمة المرور الجديدة</label>
+                <div className="relative">
+                  <KeyRound className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" size={20} />
+                  <input 
+                    type="password" required
+                    minLength={6}
+                    className="w-full pr-12 pl-4 py-4 bg-gray-50 dark:bg-gray-800 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all text-sm font-black shadow-sm"
+                    placeholder="أدخل كلمة مرور قوية"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-emerald-600 text-white py-5 rounded-[1.25rem] font-black shadow-2xl shadow-emerald-600/30 hover:bg-emerald-700 transition-all active:scale-95 text-sm mt-4 disabled:opacity-50"
+              >
+                تغيير كلمة المرور والدخول
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>
