@@ -12,7 +12,9 @@
     "prod": "tsc && vite build && vite preview",
     "predeploy": "npm run build:static",
     "clean-gh-pages": "node -e \"try { require('fs').rmSync('node_modules/.cache/gh-pages', { recursive: true, force: true }) } catch(e) {}\"",
-    "deploy": "npm run clean-gh-pages && gh-pages -d dist"
+    "deploy": "npm run clean-gh-pages && gh-pages -d dist",
+    "build:cloudflare": "npm run build:static",
+    "deploy:cloudflare": "npm run build:cloudflare && wrangler pages deploy dist --project-name gshr-alnazla-management"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
@@ -37,6 +39,7 @@
     "cross-env": "^10.1.0",
     "gh-pages": "^6.1.1",
     "typescript": "^5.4.5",
-    "vite": "^5.3.1"
+    "vite": "^5.3.1",
+    "wrangler": "^4.85.0"
   }
 }
