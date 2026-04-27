@@ -13,7 +13,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
-  const { isDarkMode, toggleDarkMode, resetToSeedData, branches } = useStore();
+  const { isDarkMode, toggleDarkMode, branches } = useStore();
   const location = useLocation();
   
   // Sidebar state initialization based on viewport
@@ -169,15 +169,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-            {isAdmin && (
-               <button
-                onClick={resetToSeedData}
-                className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-gray-400 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/10 transition-colors text-xs font-bold"
-              >
-                <RotateCcw size={18} />
-                <span>إعادة تعيين النظام</span>
-              </button>
-            )}
             <button
               onClick={onLogout}
               className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors font-bold text-sm"

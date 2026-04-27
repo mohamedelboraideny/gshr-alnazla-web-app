@@ -8,12 +8,14 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', username: '', password: '123', role: Role.STAFF, branchId: '' });
+  const [errors, setErrors] = useState<{name?: string, username?: string}>({});
   
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null; mode: 'delete' | 'reset' }>({
     isOpen: false, id: null, mode: 'delete'
   });
 
   const handleOpenModal = (id: string | null = null) => {
+    setErrors({});
     if (id) {
       const u = store.users.find(x => x.id === id);
       if (u) {
@@ -27,33 +29,83 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
-    let newUsers = [...store.users];
-    if (editId) {
-      newUsers = newUsers.map(u => u.id === editId ? { ...u, ...formData } : u);
-      store.addLog(currentUser, 'تعديل مستخدم', 'مستخدم', editId);
-    } else {
-      const newId = 'u' + (store.users.length + 1);
-      // New users always start with first login flag
-      newUsers.push({ ...formData, id: newId, isFirstLogin: true });
-      store.addLog(currentUser, 'إضافة مستخدم جديد', 'مستخدم', newId);
+  const handleSave = async () => {
+    let newErrors: {name?: string, username?: string} = {};
+    if (!formData.name.trim() || formData.name.trim().split(' ').length < 2) {
+      newErrors.name = 'يرجى إدخال الاسم بالكامل (الاسم الأول واسم العائلة)';
     }
-    store.saveUsers(newUsers);
-    setIsModalOpen(false);
+    if (!formData.username.trim() || formData.username.includes(' ')) {
+      newErrors.username = 'يرجى إدخال اسم مستخدم صحيح وبدون مسافات';
+    } else {
+      // check if username is taken
+      const existingUser = store.users.find(u => u.username === formData.username && u.id !== editId);
+      if (existingUser) {
+        newErrors.username = 'اسم المستخدم مسجل مسبقاً';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      if (editId) {
+        let newUsers = [...store.users];
+        newUsers = newUsers.map(u => u.id === editId ? { ...u, ...formData } : u);
+        await store.saveUsers(newUsers);
+        store.addLog(currentUser, 'تعديل مستخدم', 'مستخدم', editId);
+      } else {
+        if (import.meta.env.VITE_API_MODE === 'proxy') {
+           const res = await fetch('/api/users/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(formData)
+           });
+           if (!res.ok) {
+             const error = await res.json();
+             throw new Error(error.message || 'فشل في إنشاء الحساب');
+           }
+           const profile = await res.json();
+           const newUsers = [...store.users, profile];
+           await store.saveUsers(newUsers); // Although it's already saved, this updates the local state
+           store.addLog(currentUser, 'إضافة مستخدم جديد', 'مستخدم', profile.id);
+        } else {
+           throw new Error('لا يمكن إضافة مستخدمين في هذا الوضع');
+        }
+      }
+      setIsModalOpen(false);
+    } catch (e: any) {
+      alert(e.message);
+    }
   };
 
-  const executeAction = () => {
+  const executeAction = async () => {
     if (!confirmModal.id) return;
-    if (confirmModal.mode === 'delete') {
-      store.saveUsers(store.users.filter(u => u.id !== confirmModal.id));
-      store.addLog(currentUser, 'حذف مستخدم', 'مستخدم', confirmModal.id);
-    } else {
-      // Reset password to 123 and force change
-      store.saveUsers(store.users.map(u => 
-        u.id === confirmModal.id ? { ...u, password: '123', isFirstLogin: true } : u
-      ));
-      store.addLog(currentUser, 'إعادة تعيين كلمة مرور', 'مستخدم', confirmModal.id);
-      alert('تمت إعادة كلمة المرور إلى 123 بنجاح');
+    try {
+      if (confirmModal.mode === 'delete') {
+        if (import.meta.env.VITE_API_MODE === 'proxy') {
+           await fetch(`/api/users/${confirmModal.id}`, { method: 'DELETE' });
+        }
+        await store.saveUsers(store.users.filter(u => u.id !== confirmModal.id));
+        store.addLog(currentUser, 'حذف مستخدم', 'مستخدم', confirmModal.id);
+      } else {
+        if (import.meta.env.VITE_API_MODE === 'proxy') {
+           await fetch('/api/users/reset', { 
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ id: confirmModal.id })
+           });
+        }
+        await store.saveUsers(store.users.map(u => 
+          u.id === confirmModal.id ? { ...u, isFirstLogin: true } : u
+        ));
+        store.addLog(currentUser, 'إعادة تعيين كلمة مرور', 'مستخدم', confirmModal.id);
+        alert('تمت إعادة كلمة المرور إلى 123 بنجاح');
+      }
+      setConfirmModal({ isOpen: false, id: null, mode: 'delete' });
+    } catch (e: any) {
+      alert('حدث خطأ: ' + e.message);
     }
   };
 
@@ -135,11 +187,13 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1 px-1">الاسم الكامل</label>
-                <input type="text" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                <input type="text" className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border ${errors.name ? 'border-red-500' : 'border-none'} rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm`} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                {errors.name && <p className="text-red-500 text-xs mt-1 px-1">{errors.name}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1 px-1">اسم المستخدم (للدخول)</label>
-                <input type="text" className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
+                <input type="text" className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border ${errors.username ? 'border-red-500' : 'border-none'} rounded-2xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm`} value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
+                {errors.username && <p className="text-red-500 text-xs mt-1 px-1">{errors.username}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

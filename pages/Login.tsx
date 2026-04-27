@@ -23,35 +23,50 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      let usersList: User[] = [];
-
-      // Fetch users dynamically based on API mode
+      let loggedInUser: User | null = null;
+      
       if (import.meta.env.VITE_API_MODE === 'proxy') {
-         const res = await fetch('/api/user_profiles');
-         if (!res.ok) throw new Error('API fetch failed');
-         usersList = await res.json();
+         const res = await fetch('/api/auth/login', {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ username, password })
+         });
+         
+         if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.error || 'بيانات الدخول غير صحيحة');
+         }
+         
+         const data = await res.json();
+         loggedInUser = data.user;
       } else {
          if (!supabase) throw new Error('Supabase client not initialized.');
-         const { data, error } = await supabase.from('user_profiles').select('*');
-         if (error) throw error;
-         usersList = data || [];
+         
+         // 1. Fetch user profile by username
+         const { data: profile } = await supabase.from('user_profiles').select('*').eq('username', username).single();
+         if (!profile) throw new Error('المستخدم غير موجود');
+         
+         // In direct mode, we assume the user's email is username@gshr.local, unless we somehow know it.
+         // This might fail for the original admin if they use direct mode, but direct mode shouldn't be used
+         // without the server backing it for these custom proxy endpoints.
+         const email = `${username}@gshr.local`;
+         
+         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+         });
+         if (authError || !authData.user) throw new Error('بيانات الدخول غير صحيحة');
+         
+         loggedInUser = profile;
       }
 
-      const user = usersList.find(u => u.username === username);
-
-      if (user) {
-        if (user.password === password) {
-          if (user.isFirstLogin || password === '123') {
-             setTempUser(user);
-             setStep('reset_password');
-          } else {
-             onLogin(user);
-          }
+      if (loggedInUser) {
+        if (loggedInUser.isFirstLogin || password === '123') {
+           setTempUser(loggedInUser);
+           setStep('reset_password');
         } else {
-          setError('بيانات الدخول غير صحيحة');
+           onLogin(loggedInUser);
         }
-      } else {
-        setError('المستخدم غير موجود');
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -74,13 +89,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
        const updatedUser = { ...tempUser, password: password, isFirstLogin: false };
        
        if (import.meta.env.VITE_API_MODE === 'proxy') {
-         await fetch(`/api/user_profiles/upsert`, {
+         await fetch(`/api/users/change-password`, {
            method: 'POST',
            headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify(updatedUser)
+           body: JSON.stringify({ id: tempUser.id, password })
          });
        } else {
          if (supabase) {
+           await supabase.auth.updateUser({ password });
            await supabase.from('user_profiles').upsert(updatedUser);
          }
        }

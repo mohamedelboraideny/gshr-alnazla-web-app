@@ -93,6 +93,98 @@ async function startServer() {
     res.json({ data, count });
   });
 
+  // User management using Supabase Auth Admin
+  app.post('/api/users/create', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { name, username, role, branchId } = req.body;
+    const email = `${username}@gshr.local`;
+    
+    // Create user in Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password: '123',
+      email_confirm: true,
+    });
+    
+    if (authError) return res.status(400).json(authError);
+    if (!authData.user) return res.status(400).json({ message: 'User not created' });
+
+    // Create profile
+    const profile = {
+      id: authData.user.id,
+      name,
+      username,
+      role,
+      branchId,
+      isFirstLogin: true
+    };
+    const { error: profileError } = await supabase.from('user_profiles').upsert(profile);
+    
+    if (profileError) return res.status(400).json(profileError);
+    res.json(profile);
+  });
+
+  app.post('/api/users/reset', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { id } = req.body;
+    
+    const { error } = await supabase.auth.admin.updateUserById(id, { password: '123' });
+    if (error) return res.status(400).json(error);
+    
+    await supabase.from('user_profiles').update({ isFirstLogin: true }).eq('id', id);
+    res.json({ success: true });
+  });
+
+  // Custom auth login
+  app.post('/api/auth/login', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { username, password } = req.body;
+    
+    // Find profile by username
+    const { data: profile, error: profileError } = await supabase.from('user_profiles').select('*').eq('username', username).single();
+    if (profileError || !profile) return res.status(401).json({ error: 'المستخدم غير موجود' });
+    
+    // Find auth user to get exact email
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+    if (userError || !userData.user) {
+      return res.status(401).json({ error: 'حساب المستخدم غير موجود في نظام التوثيق' });
+    }
+    
+    const email = userData.user.email;
+    
+    // Now verify the password through a standard sign in
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email!,
+      password
+    });
+    
+    if (authError) return res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
+    
+    res.json({ user: profile });
+  });
+
+  app.post('/api/users/change-password', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { id, password } = req.body;
+    
+    const { error } = await supabase.auth.admin.updateUserById(id, { password });
+    if (error) return res.status(400).json(error);
+    
+    await supabase.from('user_profiles').update({ isFirstLogin: false }).eq('id', id);
+    res.json({ success: true });
+  });
+
+  app.delete('/api/users/:id', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { id } = req.params;
+    
+    const { error: authError } = await supabase.auth.admin.deleteUser(id);
+    if (authError) return res.status(400).json(authError);
+    
+    await supabase.from('user_profiles').delete().eq('id', id);
+    res.json({ success: true });
+  });
+
   // Generic fetch for all tables
   app.get('/api/:table', async (req: express.Request, res: express.Response) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
