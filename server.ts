@@ -116,7 +116,8 @@ async function startServer() {
       username,
       role,
       branchId,
-      isFirstLogin: true
+      isFirstLogin: true,
+      password: '123'
     };
     const { error: profileError } = await supabase.from('user_profiles').upsert(profile);
     
@@ -143,8 +144,12 @@ async function startServer() {
     const { username, password } = req.body;
     
     // Find profile by username
-    const { data: profile, error: profileError } = await supabase.from('user_profiles').select('*').eq('username', username).single();
-    if (profileError || !profile) return res.status(401).json({ error: 'المستخدم غير موجود' });
+    const trimmedUsername = (username || '').trim();
+    const { data: profile, error: profileError } = await supabase.from('user_profiles').select('*').eq('username', trimmedUsername).single();
+    if (profileError || !profile) {
+      console.error('Login error finding profile:', trimmedUsername, profileError);
+      return res.status(401).json({ error: 'المستخدم غير موجود' });
+    }
     
     // If we have a plain text password stored in user_profiles, check it directly.
     // This allows the initial admin user or users migrated with ADD COLUMN password to login.

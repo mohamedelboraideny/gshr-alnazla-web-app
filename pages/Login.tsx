@@ -29,7 +29,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
          const res = await fetch('/api/auth/login', {
            method: 'POST',
            headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({ username, password })
+           body: JSON.stringify({ username: username.trim(), password })
          });
          
          if (!res.ok) {
@@ -43,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
          if (!supabase) throw new Error('Supabase client not initialized.');
          
          // 1. Fetch user profile by username
-         const { data: profile } = await supabase.from('user_profiles').select('*').eq('username', username).single();
+         const { data: profile } = await supabase.from('user_profiles').select('*').eq('username', username.trim()).single();
          if (!profile) throw new Error('المستخدم غير موجود');
          
          // In direct mode, we assume the user's email is username@gshr.local, unless we somehow know it.
