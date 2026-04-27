@@ -236,10 +236,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return res.json();
         };
 
-        const [b, r, u, cat, hc, sp, l] = await Promise.all([
+        const [b, r, u, ben, cat, hc, sp, l] = await Promise.all([
           fetchTable('branches'),
           fetchTable('regions'),
           fetchTable('user_profiles'), // Updated to user_profiles
+          fetchTable('beneficiaries'),
           fetchTable('categories'),
           fetchTable('health_conditions'),
           fetchTable('sponsors'),
@@ -252,6 +253,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (b && !b.error) setBranchesState(b);
         if (r && !r.error) setRegionsState(r);
         if (u && !u.error) setUsersState(u);
+        if (ben && !ben.error) setBeneficiariesState(ben);
         if (cat && !cat.error) setCategoriesState(cat);
         if (hc && !hc.error) setHealthConditionsState(hc);
         if (sp && !sp.error) setSponsorsState(sp);
@@ -261,10 +263,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // Direct Mode (GitHub Pages)
         if (!supabase) throw new Error('Supabase client not initialized for direct mode');
 
-        const [b, r, u, cat, hc, sp, l, ps] = await Promise.all([
+        const [b, r, u, ben, cat, hc, sp, l, ps] = await Promise.all([
           supabase.from('branches').select('*'),
           supabase.from('regions').select('*'),
           supabase.from('user_profiles').select('*'), // Updated to user_profiles
+          supabase.from('beneficiaries').select('*'),
           supabase.from('categories').select('*'),
           supabase.from('health_conditions').select('*'),
           supabase.from('sponsors').select('*'),
@@ -275,6 +278,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (b.data) setBranchesState(b.data);
         if (r.data) setRegionsState(r.data);
         if (u.data) setUsersState(u.data);
+        if (ben.data) setBeneficiariesState(ben.data);
         if (cat.data) setCategoriesState(cat.data);
         if (hc.data) setHealthConditionsState(hc.data);
         if (sp.data) setSponsorsState(sp.data);
