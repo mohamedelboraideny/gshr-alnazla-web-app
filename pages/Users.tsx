@@ -69,10 +69,23 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
            }
            const profile = await res.json();
            const newUsers = [...store.users, profile];
-           await store.saveUsers(newUsers); // Although it's already saved, this updates the local state
+           await store.saveUsers(newUsers); 
            store.addLog(currentUser, 'إضافة مستخدم جديد', 'مستخدم', profile.id);
         } else {
-           throw new Error('لا يمكن إضافة مستخدمين في هذا الوضع');
+           // Direct mode fallback
+           const newId = crypto.randomUUID();
+           const newProfile = {
+             id: newId,
+             ...formData,
+             isFirstLogin: true,
+             password: '123'
+           };
+           const { error } = await store.supabase.from('user_profiles').insert(newProfile);
+           if (error) throw new Error('فشل في إنشاء الحساب: ' + error.message);
+           
+           const newUsers = [...store.users, newProfile as User];
+           await store.saveUsers(newUsers);
+           store.addLog(currentUser, 'إضافة مستخدم جديد', 'مستخدم', newId);
         }
       }
       setIsModalOpen(false);
@@ -88,6 +101,8 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
       if (confirmModal.mode === 'delete') {
         if (API_MODE === 'proxy') {
            await fetch(`/api/users/${confirmModal.id}`, { method: 'DELETE' });
+        } else {
+           await store.supabase.from('user_profiles').delete().eq('id', confirmModal.id);
         }
         await store.saveUsers(store.users.filter(u => u.id !== confirmModal.id));
         store.addLog(currentUser, 'حذف مستخدم', 'مستخدم', confirmModal.id);
@@ -98,9 +113,11 @@ const Users: React.FC<{ user: User }> = ({ user: currentUser }) => {
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({ id: confirmModal.id })
            });
+        } else {
+           await store.supabase.from('user_profiles').update({ isFirstLogin: true, password: '123' }).eq('id', confirmModal.id);
         }
         await store.saveUsers(store.users.map(u => 
-          u.id === confirmModal.id ? { ...u, isFirstLogin: true } : u
+          u.id === confirmModal.id ? { ...u, isFirstLogin: true, password: '123' } : u
         ));
         store.addLog(currentUser, 'إعادة تعيين كلمة مرور', 'مستخدم', confirmModal.id);
         alert('تمت إعادة كلمة المرور إلى 123 بنجاح');

@@ -47,19 +47,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
          // 1. Fetch user profile by username
          const { data: profile } = await supabase.from('user_profiles').select('*').eq('username', username.trim()).single();
          if (!profile) throw new Error('المستخدم غير موجود');
-         
-         // In direct mode, we assume the user's email is username@gshr.local, unless we somehow know it.
-         // This might fail for the original admin if they use direct mode, but direct mode shouldn't be used
-         // without the server backing it for these custom proxy endpoints.
-         const email = `${username}@gshr.local`;
-         
-         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-         });
-         if (authError || !authData.user) throw new Error('بيانات الدخول غير صحيحة');
-         
-         loggedInUser = profile;
+
+         if (profile.password === password) {
+            loggedInUser = profile;
+         } else {
+            // Fallback to supabase auth
+            const email = `${username}@gshr.local`;
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+               email,
+               password
+            });
+            if (authError || !authData.user) throw new Error('بيانات الدخول غير صحيحة');
+            loggedInUser = profile;
+         }
       }
 
       if (loggedInUser) {
