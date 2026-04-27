@@ -60,7 +60,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 4. Insert some dummy data for testing (Optional)
 -- This assumes you have at least one sponsor. It will safely ignore if no sponsors exist.
-DO $$
+DO $
 DECLARE
     v_sponsor_id TEXT;
     v_user_id UUID;
@@ -95,4 +95,4 @@ BEGIN
             'DEP-881'::VARCHAR
         );
     END IF;
-END $$;
+END $;
