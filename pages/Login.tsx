@@ -48,18 +48,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
          const { data: profile } = await supabase.from('user_profiles').select('*').eq('username', username.trim()).single();
          if (!profile) throw new Error('المستخدم غير موجود');
 
-         if (profile.password === password) {
-            loggedInUser = profile;
-         } else {
-            // Fallback to supabase auth
-            const email = `${username}@gshr.local`;
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-               email,
-               password
-            });
-            if (authError || !authData.user) throw new Error('بيانات الدخول غير صحيحة');
-            loggedInUser = profile;
+         // 2. We MUST sign in with Supabase Auth to get a JWT session for RLS.
+         // Hardcode the original admin email to ensure they can login.
+         const email = username.trim() === 'admin' ? 'mohamedelboraideny@gmail.com' : `${username.trim()}@gshr.local`;
+         
+         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+         });
+         
+         if (authError || !authData.user) {
+            throw new Error('بيانات الدخول غير صحيحة');
          }
+         
+         loggedInUser = profile;
       }
 
       if (loggedInUser) {
@@ -196,6 +198,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   />
                 </div>
               </div>
+
 
               <button 
                 type="submit"

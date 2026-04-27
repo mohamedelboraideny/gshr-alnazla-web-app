@@ -11,7 +11,7 @@ export const supabase = (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
   : null;
 
-// --- Types & Enums ---
+    // --- Types &&& Enums ---
 export enum Role {
   ADMIN = 'Admin',
   MANAGER = 'Manager',

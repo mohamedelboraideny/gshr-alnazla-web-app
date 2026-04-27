@@ -93,7 +93,7 @@ async function startServer() {
     res.json({ data, count });
   });
 
-  // User management using Supabase Auth Admin
+  //    User management using Supabase Auth Admin
   app.post('/api/users/create', async (req: express.Request, res: express.Response) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const { name, username, role, branchId } = req.body;
