@@ -128,10 +128,12 @@ async function startServer() {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const { id } = req.body;
     
-    const { error } = await supabase.auth.admin.updateUserById(id, { password: '123' });
+    // We try to update auth password but ignore if it fails
+    await supabase.auth.admin.updateUserById(id, { password: '123' });
+    
+    const { error } = await supabase.from('user_profiles').update({ isFirstLogin: true, password: '123' }).eq('id', id);
     if (error) return res.status(400).json(error);
     
-    await supabase.from('user_profiles').update({ isFirstLogin: true }).eq('id', id);
     res.json({ success: true });
   });
 
@@ -144,33 +146,39 @@ async function startServer() {
     const { data: profile, error: profileError } = await supabase.from('user_profiles').select('*').eq('username', username).single();
     if (profileError || !profile) return res.status(401).json({ error: 'المستخدم غير موجود' });
     
-    // Find auth user to get exact email
+    // If we have a plain text password stored in user_profiles, check it directly.
+    // This allows the initial admin user or users migrated with ADD COLUMN password to login.
+    if (profile.password === password) {
+      return res.json({ user: profile });
+    }
+
+    // Fallback: Verify the password through a standard Supabase sign in
     const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-    if (userError || !userData.user) {
-      return res.status(401).json({ error: 'حساب المستخدم غير موجود في نظام التوثيق' });
+    if (!userError && userData.user && userData.user.email) {
+       const email = userData.user.email;
+       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+         email: email,
+         password
+       });
+       
+       if (!authError && authData.user) {
+         return res.json({ user: profile });
+       }
     }
     
-    const email = userData.user.email;
-    
-    // Now verify the password through a standard sign in
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: email!,
-      password
-    });
-    
-    if (authError) return res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
-    
-    res.json({ user: profile });
+    res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
   });
 
   app.post('/api/users/change-password', async (req: express.Request, res: express.Response) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
     const { id, password } = req.body;
     
-    const { error } = await supabase.auth.admin.updateUserById(id, { password });
+    // Try to update Auth password if it exists
+    await supabase.auth.admin.updateUserById(id, { password });
+    
+    const { error } = await supabase.from('user_profiles').update({ isFirstLogin: false, password }).eq('id', id);
     if (error) return res.status(400).json(error);
     
-    await supabase.from('user_profiles').update({ isFirstLogin: false }).eq('id', id);
     res.json({ success: true });
   });
 

@@ -197,7 +197,6 @@ interface StoreContextType {
   setSponsors: (data: Sponsor[]) => Promise<void>;
   addLog: (user: User, action: string, entityType: string, entityId: string) => Promise<void>;
   toggleDarkMode: () => void;
-  resetToSeedData: () => void;
   setPrintSettings: (settings: PrintSettings) => Promise<void>;
   fetchData: () => Promise<void>;
   supabase: any;
@@ -394,16 +393,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await apiUpsert('print_settings', { id: 'default', ...settings });
   };
 
-  const resetToSeedData = () => {
-    // This now only clears local cache; data remains in Supabase
-    localStorage.clear();
-    window.location.reload();
-  };
-
   return (
     <StoreContext.Provider value={{
       branches, regions, users, beneficiaries, categories, healthConditions, sponsors, logs, isDarkMode, printSettings, isLoading,
-      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, setSponsors, addLog, toggleDarkMode, resetToSeedData, setPrintSettings, fetchData, supabase
+      setBranches, setRegions, saveUsers, setBeneficiaries, setCategories, setHealthConditions, setSponsors, addLog, toggleDarkMode, setPrintSettings, fetchData, supabase
     }}>
       {children}
     </StoreContext.Provider>
