@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { Layout } from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -83,6 +84,7 @@ const AuthGate: React.FC = () => {
 
 const App: React.FC = () => (
   <StoreProvider>
+    <Toaster richColors position="top-center" dir="rtl" />
     <AuthGate />
   </StoreProvider>
 );

@@ -63,6 +63,27 @@ async function startServer() {
     res.json({ data, count });
   });
 
+  app.post('/api/beneficiaries', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { data, error } = await supabase.from('beneficiaries').insert(req.body).select().single();
+    if (error) return res.status(400).json(error);
+    res.json(data);
+  });
+
+  app.put('/api/beneficiaries/:id', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { data, error } = await supabase.from('beneficiaries').update(req.body).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json(error);
+    res.json(data);
+  });
+
+  app.delete('/api/beneficiaries/:id', async (req: express.Request, res: express.Response) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
+    const { error } = await supabase.from('beneficiaries').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json(error);
+    res.json({ success: true });
+  });
+
   // Paginated Subscriptions
   app.get('/api/subscriptions/paginated', async (req: express.Request, res: express.Response) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
@@ -189,7 +210,7 @@ async function startServer() {
 
   app.delete('/api/users/:id', async (req: express.Request, res: express.Response) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not configured' });
-    const { id } = req.params;
+    const id = req.params.id as string;
     
     const { error: authError } = await supabase.auth.admin.deleteUser(id);
     if (authError) return res.status(400).json(authError);

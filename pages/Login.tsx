@@ -44,20 +44,37 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       } else {
          if (!supabase) throw new Error('Supabase client not initialized.');
          
-         // 1. Fetch user profile by username
-         const { data: profile } = await supabase.from('user_profiles').select('*').eq('username', username.trim()).single();
+         // 1. Fetch user profile by username or email (we only have username column, so assume input is username)
+         // But if they type email, we extract username? No, let's keep it simple.
+         let inputUsername = username.trim();
+         let email = '';
+         
+         if (inputUsername.includes('@')) {
+            email = inputUsername;
+            inputUsername = inputUsername.split('@')[0];
+         } else {
+            email = `${inputUsername}@gshr.local`;
+            // Fallback for the known admin since we don't have an email column yet
+            if (inputUsername === 'admin' || inputUsername === 'Admin') {
+               email = 'mohamedelboraideny@gmail.com';
+            }
+         }
+         
+         // Fetch profile
+         const { data: profile } = await supabase.from('user_profiles').select('*').eq('username', inputUsername).single();
          if (!profile) throw new Error('المستخدم غير موجود');
 
          // 2. We MUST sign in with Supabase Auth to get a JWT session for RLS.
-         // Hardcode the original admin email to ensure they can login.
-         const email = username.trim() === 'admin' ? 'mohamedelboraideny@gmail.com' : `${username.trim()}@gshr.local`;
-         
          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email,
             password
          });
          
          if (authError || !authData.user) {
+            // Try fallback one more time if their email was different and they didn't provide it
+            if (authError.message.includes('Invalid login credentials') && !username.includes('@')) {
+               throw new Error('بيانات الدخول غير صحيحة، إذا كان حسابك يمتلك إيميل مخصص يرجى كتابته بالكامل بدلاً من اسم المستخدم.');
+            }
             throw new Error('بيانات الدخول غير صحيحة');
          }
          

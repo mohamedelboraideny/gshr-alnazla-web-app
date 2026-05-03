@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useSWR from 'swr';
+import { toast } from 'sonner';
 import { useStore, User, Beneficiary, BeneficiaryStatus, BeneficiaryType, Role, Gender, EDUCATION_LEVELS, SponsorshipStatus, KINSHIP_RELATIONS } from '../CharityStore';
 import { BeneficiaryService } from '../services/beneficiaryService';
 import { 
   Plus, Search, Edit3, Trash2, 
   User as UserIcon, Users as UsersIcon, X, 
   LayoutList, Network, MapPin, Check, Phone,
-  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle, Filter, ArrowUpCircle, ChevronLeft
+  ChevronDown, ChevronRight, Tag, Printer, Baby, BookOpen, GraduationCap, Heart, Link as LinkIcon, UserCheck, SearchCode, Fingerprint, CornerDownRight, Home, School, Settings, Activity, Stethoscope, AlertCircle, Filter, ArrowUpCircle, ChevronLeft, Loader2
 } from 'lucide-react';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -82,6 +83,8 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     const catParam = searchParams.get('category');
     if (catParam) {
@@ -94,6 +97,47 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
   useEffect(() => {
      setLocalPrintSettings(printSettings);
   }, [printSettings]);
+
+  const parseNationalId = (id: string) => {
+    if (id.length !== 14) return null;
+    try {
+      const yearPrefix = id[0] === '2' ? '19' : '20';
+      const year = yearPrefix + id.substring(1, 3);
+      const month = id.substring(3, 5);
+      const day = id.substring(5, 7);
+      
+      const genderCode = parseInt(id[12]);
+      const gender = (genderCode % 2 === 0) ? Gender.FEMALE : Gender.MALE;
+      
+      const isValidDate = !isNaN(Date.parse(`${year}-${month}-${day}`));
+      if (!isValidDate) return null;
+      
+      return { birthDate: `${year}-${month}-${day}`, gender };
+    } catch {
+      return null;
+    }
+  };
+
+  const handleNationalIdChange = (val: string) => {
+    let newErrors = { ...errors };
+    const numericVal = val.replace(/\D/g, '');
+    
+    setFormData(prev => {
+      const updated = { ...prev, nationalId: numericVal };
+      if (numericVal.length === 14) {
+        const parsed = parseNationalId(numericVal);
+        if (parsed) {
+          updated.birthDate = parsed.birthDate;
+          updated.gender = parsed.gender;
+          delete newErrors.nationalId;
+        } else {
+          newErrors.nationalId = 'الرقم القومي غير صحيح';
+        }
+      }
+      return updated;
+    });
+    setErrors(newErrors);
+  };
 
   const initialForm = {
     name: '',
@@ -213,32 +257,44 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
        finalType = formData.familyId ? BeneficiaryType.FAMILY_MEMBER : BeneficiaryType.INDIVIDUAL;
     }
 
+    setIsSaving(true);
     try {
       if (editId) {
-        // In a real app, you'd call a service to update
-        // await BeneficiaryService.update(editId, { ...formData, type: finalType });
+        await BeneficiaryService.update(editId, { ...formData, type: finalType });
         addLog(user, 'تعديل', 'مستفيد', editId);
+        toast.success('تم تعديل بيانات المستفيد بنجاح');
       } else {
-        const newId = Math.random().toString(36).substring(2, 11);
         const newB = { 
-          ...formData, id: newId, branchId: user.branchId, type: finalType, createdAt: new Date().toISOString() 
+          ...formData, branchId: user.branchId, type: finalType, createdAt: new Date().toISOString() 
         };
-        // await BeneficiaryService.create(newB);
-        addLog(user, 'إضافة', finalType, newId);
+        const result = await BeneficiaryService.create(newB);
+        addLog(user, 'إضافة', finalType, result.id);
+        toast.success('تمت إضافة المستفيد بنجاح');
       }
       mutate(); // Revalidate SWR cache
       setIsModalOpen(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast.error(e.message || 'حدث خطأ أثناء الحفظ');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const executeDelete = async () => {
     if (confirmModal.id) {
-      // await BeneficiaryService.delete(confirmModal.id);
-      addLog(user, 'حذف', 'مستفيد', confirmModal.id);
-      mutate(); // Revalidate SWR cache
-      setConfirmModal({ isOpen: false });
+      setIsSaving(true);
+      try {
+        await BeneficiaryService.delete(confirmModal.id);
+        addLog(user, 'حذف', 'مستفيد', confirmModal.id);
+        toast.success('تم الحذف بنجاح');
+        mutate(); // Revalidate SWR cache
+        setConfirmModal({ isOpen: false });
+      } catch (e: any) {
+        toast.error(e.message || 'حدث خطأ أثناء الحذف');
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -878,33 +934,49 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                        <Fingerprint size={16} /> البيانات الشخصية الأساسية
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                       <div>
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الاسم رباعي</label>
+                       {/* Row 1 */}
+                       <div className="lg:col-span-1">
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الاسم رباعي *</label>
                           <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="الاسم كما في البطاقة" />
                           {errors.name && <p className="text-red-500 text-[10px] mt-1">{errors.name}</p>}
                        </div>
-                       <div>
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الرقم القومي (14 رقم)</label>
-                          <input type="text" maxLength={14} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold font-mono" value={formData.nationalId} onChange={e => setFormData({...formData, nationalId: e.target.value})} placeholder="xxxxxxxxxxxxxx" />
+                       <div className="lg:col-span-1">
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الرقم القومي (14 رقم) *</label>
+                          <input type="text" maxLength={14} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold font-mono" value={formData.nationalId} onChange={e => handleNationalIdChange(e.target.value)} placeholder="xxxxxxxxxxxxxx" />
                           {errors.nationalId && <p className="text-red-500 text-[10px] mt-1">{errors.nationalId}</p>}
                        </div>
-                       <div>
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">تاريخ الميلاد</label>
-                          <input type="date" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+                       <div className="lg:col-span-1">
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">المنطقة الجغرافية *</label>
+                          <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.regionId} onChange={e => setFormData({...formData, regionId: e.target.value})}>
+                             <option value="">اختر المنطقة</option>
+                             {branchRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                          </select>
+                          {errors.regionId && <p className="text-red-500 text-[10px] mt-1">{errors.regionId}</p>}
+                       </div>
+                       
+                       {/* Row 2 */}
+                       <div className="lg:col-span-1">
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">تاريخ الميلاد *</label>
+                          <input type="date" disabled={formData.nationalId.length === 14} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold disabled:opacity-60" value={formData.birthDate} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
                           {errors.birthDate && <p className="text-red-500 text-[10px] mt-1">{errors.birthDate}</p>}
                        </div>
-                       <div>
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">رقم الهاتف</label>
-                          <input type="tel" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold font-mono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="01xxxxxxxxx" />
-                       </div>
-                       <div>
+                       <div className="lg:col-span-1">
                           <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الجنس</label>
-                          <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as Gender})}>
+                          <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold disabled:opacity-60" disabled={formData.nationalId.length === 14} value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as Gender})}>
                              <option value={Gender.MALE}>{Gender.MALE}</option>
                              <option value={Gender.FEMALE}>{Gender.FEMALE}</option>
                           </select>
                        </div>
-                       <div>
+                       <div className="lg:col-span-1">
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">رقم الهاتف</label>
+                          <input type="tel" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold font-mono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="01xxxxxxxxx" />
+                       </div>
+                       {/* Row 3 */}
+                       <div className="lg:col-span-2">
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">العنوان بالتفصيل</label>
+                          <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="اسم الشارع، رقم المنزل، علامة مميزة" />
+                       </div>
+                       <div className="lg:col-span-1">
                           <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">الحالة الاجتماعية / التصنيف</label>
                           <div className="relative">
                              <div className="flex flex-wrap gap-2 bg-gray-50 dark:bg-gray-900 p-2 rounded-xl min-h-[46px]">
@@ -935,27 +1007,7 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
                     </div>
                  </div>
 
-                 {/* Address & Location */}
-                 <div className="lg:col-span-3 pb-4 border-b border-gray-100 dark:border-gray-700 mb-2">
-                    <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                       <MapPin size={16} /> الموقع والعنوان
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                       <div>
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">المنطقة التابعة للفرع</label>
-                          <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.regionId} onChange={e => setFormData({...formData, regionId: e.target.value})}>
-                             <option value="">اختر المنطقة</option>
-                             {branchRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                          </select>
-                          {errors.regionId && <p className="text-red-500 text-[10px] mt-1">{errors.regionId}</p>}
-                       </div>
-                       <div>
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 px-1">العنوان بالتفصيل</label>
-                          <input type="text" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm font-bold" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="اسم الشارع، رقم المنزل، علامة مميزة" />
-                       </div>
-                    </div>
-                 </div>
-                 
+
                  {/* Education & Health */}
                  <div className="lg:col-span-3 pb-4 border-b border-gray-100 dark:border-gray-700 mb-2">
                     <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1081,8 +1133,10 @@ const Beneficiaries: React.FC<{ user: User }> = ({ user }) => {
             </div>
 
             <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex gap-4 shrink-0">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-sm font-black text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 transition">إلغاء</button>
-              <button onClick={handleSave} className="flex-1 py-3 text-sm font-black text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition">حفظ البيانات</button>
+              <button disabled={isSaving} onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-sm font-black text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 transition disabled:opacity-50">إلغاء</button>
+              <button disabled={isSaving} onClick={handleSave} className="flex-1 py-3 text-sm font-black text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50">
+                {isSaving ? <Loader2 className="animate-spin" size={20} /> : 'حفظ البيانات'}
+              </button>
             </div>
           </div>
         </div>

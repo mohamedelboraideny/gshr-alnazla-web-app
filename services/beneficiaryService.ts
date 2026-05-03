@@ -66,5 +66,49 @@ export const BeneficiaryService = {
 
       return { data, count };
     }
+  },
+  
+  create: async (data: any) => {
+    if (API_MODE === 'proxy') {
+      const res = await fetch('/api/beneficiaries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error('Failed to create');
+      return res.json();
+    } else {
+      const { data: result, error } = await supabase!.from('beneficiaries').insert(data).select().single();
+      if (error) throw error;
+      return result;
+    }
+  },
+  
+  update: async (id: string, data: any) => {
+    if (API_MODE === 'proxy') {
+      const res = await fetch(`/api/beneficiaries/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      return res.json();
+    } else {
+      const { data: result, error } = await supabase!.from('beneficiaries').update(data).eq('id', id).select().single();
+      if (error) throw error;
+      return result;
+    }
+  },
+
+  delete: async (id: string) => {
+    if (API_MODE === 'proxy') {
+      const res = await fetch(`/api/beneficiaries/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      return true;
+    } else {
+      const { error } = await supabase!.from('beneficiaries').delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    }
   }
 };
